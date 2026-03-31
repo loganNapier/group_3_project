@@ -1,0 +1,68 @@
+<?php
+// partials/header.php
+declare(strict_types=1);
+
+if (!isset($activeNav)) $activeNav = "";   // home | cards | collection | batch
+if (!isset($loggedIn)) $loggedIn = false;  // set in each page before include
+?>
+<a class="skip" href="#main">Skip to main content</a>
+
+<header class="siteHeader">
+  <div class="wrap headerRow">
+    <div class="brand">MTG Collection DB</div>
+
+    <nav aria-label="Primary navigation">
+      <ul class="navList">
+        <li><a href="index.php"<?= $activeNav === "home" ? ' aria-current="page"' : '' ?>>Home</a></li>
+        <li><a href="cards.php"<?= $activeNav === "cards" ? ' aria-current="page"' : '' ?>>Browse cards</a></li>
+
+        <?php if ($loggedIn): ?>
+          <li><a href="collection.php"<?= $activeNav === "collection" ? ' aria-current="page"' : '' ?>>My collection</a></li>
+          <li><a href="batch_add.php"<?= $activeNav === "batch" ? ' aria-current="page"' : '' ?>>Batch add</a></li>
+          <li><a href="logout.php">Logout</a></li>
+        <?php else: ?>
+          <li><a href="index.php#login">Login</a></li>
+          <li><a href="index.php#register">Register</a></li>
+        <?php endif; ?>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  /* Header-only styling. Do not style body/:root here. */
+  .skip{
+    position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;
+  }
+  .skip:focus{
+    position:static; width:auto; height:auto; display:inline-block;
+    margin:10px; padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel);
+  }
+
+  .siteHeader{
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(90deg,var(--panel),var(--bg));
+  }
+  .headerRow{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+  }
+  .brand{ font-weight:900; letter-spacing:.2px; }
+
+  .navList{
+    list-style:none; margin:0; padding:0;
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .navList a{
+    display:inline-block; padding:10px 12px; border-radius:12px;
+    border:1px solid transparent; text-decoration:none;
+    color:inherit;
+  }
+  .navList a:hover{
+    background:rgba(255,255,255,.03);
+    border-color:var(--border);
+  }
+</style>
