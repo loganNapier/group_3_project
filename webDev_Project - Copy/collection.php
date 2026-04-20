@@ -89,71 +89,7 @@ foreach ($rows as $r) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>My Collection</title>
-  <style>
-    :root{
-      --bg:#0b0f14; --panel:#121a24; --panel2:#0e141d;
-      --text:#e8eef7; --muted:#9bb0c9; --accent:#7cc4ff;
-      --border:#223246; --danger:#ff6b6b; --ok:#72e6a6;
-      --focus:0 0 0 3px rgba(124,196,255,.35);
-    }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family:system-ui, Arial, sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
-    a{ color:var(--text); } a:hover{ color:var(--accent); }
-    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
-      outline:none; box-shadow:var(--focus); border-color:rgba(124,196,255,.7);
-    }
-
-    .skip{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
-    .skip:focus{ position:static; width:auto; height:auto; display:inline-block; margin:10px; padding:10px 12px; background:var(--panel); border:1px solid var(--border); border-radius:12px; }
-
-    header{ border-bottom:1px solid var(--border); background:linear-gradient(90deg,var(--panel),var(--bg)); }
-    .wrap{ max-width:1100px; margin:0 auto; padding:16px; }
-    .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .brand{ font-weight:900; letter-spacing:.2px; }
-    nav ul{ list-style:none; margin:0; padding:0; display:flex; gap:10px; flex-wrap:wrap; }
-    nav a{ display:inline-block; padding:10px 12px; border-radius:12px; border:1px solid transparent; text-decoration:none; }
-    nav a:hover{ background:rgba(255,255,255,.03); border-color:var(--border); }
-
-    main{ padding:14px 0 26px; }
-    .card{ background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--border); border-radius:16px; padding:14px; }
-    h1{ margin:0; }
-    p{ margin:8px 0 0; color:var(--muted); }
-    .pill{ display:inline-block; padding:6px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:.9rem; }
-
-    .statusline{ margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); }
-    .statusline.ok{ border-color:rgba(114,230,166,.35); color:var(--ok); background:rgba(114,230,166,.06); }
-
-    .summary{ margin-top:12px; display:grid; grid-template-columns:1fr; gap:10px; }
-    .summaryItem{ border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.02); }
-    .summaryItem h2{ margin:0 0 6px; font-size:1.05rem; }
-    .summaryItem .big{ font-weight:900; font-size:1.35rem; }
-    .summaryItem .small{ color:var(--muted); font-size:.92rem; margin-top:4px; }
-    @media (min-width: 900px){ .summary{ grid-template-columns: 1fr 1fr 1fr; } }
-
-    .tableWrap{ margin-top:12px; overflow:auto; border-radius:14px; border:1px solid var(--border); }
-    table{ width:100%; border-collapse:collapse; min-width:1100px; background:rgba(255,255,255,.01); }
-    th, td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top; }
-    th{ color:var(--muted); font-weight:900; }
-
-    input, select, textarea{
-      width:100%; padding:9px 10px; border-radius:12px;
-      border:1px solid var(--border); background:#0c121a; color:var(--text);
-    }
-    textarea{ min-height:72px; resize:vertical; }
-
-    .thumb{ width:56px; height:auto; border-radius:10px; border:1px solid var(--border); background:#0c121a; display:block; }
-    .cellCard{ display:flex; gap:10px; align-items:flex-start; min-width:280px; }
-    .small{ font-size:.92rem; color:var(--muted); }
-
-    .btnRow{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    button{ border:1px solid transparent; border-radius:12px; padding:9px 11px; cursor:pointer; font-weight:900; background:var(--accent); color:#04111c; }
-    .dangerBtn{ background:transparent; color:var(--danger); border-color:rgba(255,107,107,.45); }
-    .dangerBtn:hover{ border-color:rgba(255,107,107,.75); }
-
-    .srOnly{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
-
-    footer{ border-top:1px solid var(--border); color:var(--muted); padding:14px 0; }
-  </style>
+  <link rel="stylesheet" href="./css/collection.css" />
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
