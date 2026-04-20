@@ -20,7 +20,7 @@ if (!empty($_SESSION['flash'])) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MTG Collection DB</title>
-  <link rel="stylesheet" href="./css/index.css">
+  <link rel="stylesheet" href="./css/index.css" />
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
