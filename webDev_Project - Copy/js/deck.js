@@ -7,8 +7,8 @@
  *
  */
 
-const deckId = <?= (int)$deckId ?>;
-  const csrfToken = <?= json_encode(csrf_token()) ?>;
+  const deckId = window.DECK_ID;
+  const csrfToken = window.CSRF_TOKEN;
 
   const form = document.getElementById('deckSearchForm');
   const statusEl = document.getElementById('searchStatus');
