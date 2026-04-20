@@ -31,70 +31,7 @@ $decks = $stmt->fetchAll();
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>My Decks</title>
-  <style>
-    :root{
-      --bg:#0b0f14; --panel:#121a24; --panel2:#0e141d;
-      --text:#e8eef7; --muted:#9bb0c9; --accent:#7cc4ff;
-      --border:#223246; --danger:#ff6b6b; --ok:#72e6a6;
-      --focus:0 0 0 3px rgba(124,196,255,.35);
-    }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family:system-ui, Arial, sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
-    a{ color:var(--text); } a:hover{ color:var(--accent); }
-    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
-      outline:none; box-shadow:var(--focus); border-color:rgba(124,196,255,.7);
-    }
-
-    .skip{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
-    .skip:focus{ position:static; width:auto; height:auto; display:inline-block; margin:10px; padding:10px 12px; background:var(--panel); border:1px solid var(--border); border-radius:12px; }
-
-    header{ border-bottom:1px solid var(--border); background:linear-gradient(90deg,var(--panel),var(--bg)); }
-    .wrap{ max-width:1100px; margin:0 auto; padding:16px; }
-    .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .brand{ font-weight:900; letter-spacing:.2px; }
-    nav ul{ list-style:none; margin:0; padding:0; display:flex; gap:10px; flex-wrap:wrap; }
-    nav a{ display:inline-block; padding:10px 12px; border-radius:12px; border:1px solid transparent; text-decoration:none; }
-    nav a:hover{ background:rgba(255,255,255,.03); border-color:var(--border); }
-
-    main{ padding:14px 0 26px; }
-    .card{ background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--border); border-radius:16px; padding:14px; }
-    h1,h2{ margin:0 0 10px; line-height:1.2; }
-    p{ margin:0 0 12px; color:var(--muted); }
-
-    .statusline{ margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); }
-    .statusline.ok{ border-color:rgba(114,230,166,.35); color:var(--ok); background:rgba(114,230,166,.06); }
-
-    .grid{ display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px; }
-    @media (min-width: 900px){ .grid{ grid-template-columns: .9fr 1.1fr; align-items:start; } }
-
-    label{ display:block; margin:10px 0 6px; color:var(--muted); font-size:.95rem; }
-    input, select, textarea{
-      width:100%; padding:10px 11px; border-radius:12px;
-      border:1px solid var(--border); background:#0c121a; color:var(--text);
-    }
-    textarea{ min-height:90px; resize:vertical; }
-    .row{ display:grid; grid-template-columns: 1fr; gap:10px; }
-    @media (min-width: 900px){ .row{ grid-template-columns: 1fr 1fr; } }
-
-    .actions{ display:flex; gap:10px; flex-wrap:wrap; }
-    .btn{
-      display:inline-block; padding:10px 12px; border-radius:12px;
-      border:1px solid transparent; background:var(--accent); color:#04111c;
-      font-weight:900; cursor:pointer; text-decoration:none;
-    }
-    .btn.secondary{ background:transparent; border-color:var(--border); color:var(--text); font-weight:800; }
-    .btn:hover{ filter:brightness(1.05); }
-
-    .list{ display:grid; grid-template-columns:1fr; gap:10px; }
-    .deckItem{
-      border:1px solid var(--border); border-radius:14px; padding:12px;
-      background:rgba(255,255,255,.02);
-    }
-    .deckTop{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:baseline; }
-    .deckName{ font-weight:900; }
-    .meta{ color:var(--muted); font-size:.92rem; margin-top:6px; }
-    .pill{ display:inline-block; padding:6px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:.85rem; }
-  </style>
+  <link rel="stylesheet" href="./css/decks.css" />
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
