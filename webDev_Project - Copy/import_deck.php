@@ -296,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Import decklist — <?= h((string)$deck['name']) ?></title>
-  <link rel="stylesheet" href="./css/import_deck.css">
+  <link rel="stylesheet" href="./css/import_deck.css" />
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
