@@ -6,6 +6,7 @@
  * For deck.php scripting
  *
  */
+console.log('deck.js has been read');
 
   const deckId = window.DECK_ID;
   const csrfToken = window.CSRF_TOKEN;
