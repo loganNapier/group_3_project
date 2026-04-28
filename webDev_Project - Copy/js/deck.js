@@ -8,8 +8,8 @@
  */
 console.log('deck.js has been read');
 
-  const deckId = window.DECK_ID;
   const csrfToken = window.CSRF_TOKEN;
+  const deckId = window.DECK_ID;
 
   const form = document.getElementById('deckSearchForm');
   const statusEl = document.getElementById('searchStatus');

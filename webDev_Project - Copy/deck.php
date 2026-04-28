@@ -1,5 +1,6 @@
 <?php
 // deck.php (editable deck cards + totals + inline Scryfall search)
+
 declare(strict_types=1);
 
 require_once (__DIR__ . "/auth/config.php");
@@ -111,7 +112,7 @@ $deckKnown = $mainKnown + $sideKnown;
   <title><?= h((string)$deck['name']) ?> — Deck</title>
   <link rel="stylesheet" href="./css/deck.css" />
 </head>
-<body>
+<body data-csrf="<?= h(csrf_token()) ?>" data-deck-id="<?= (int)$deckId ?>">
   <a class="skip" href="#main">Skip to main content</a>
 
   <header>
@@ -381,7 +382,11 @@ $deckKnown = $mainKnown + $sideKnown;
       </footer>
     </div>
   </main>
+  <script>
+  window.CSRF_TOKEN = document.body.dataset.csrf;
+  window.DECK_ID = document.body.dataset.deckId;
+  </script>
+  <script src="./js/deck.js"></script>
 
-<script src="./js/deck.js"></script>
 </body>
 </html>
