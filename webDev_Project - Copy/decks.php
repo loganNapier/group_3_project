@@ -17,11 +17,36 @@ if (!empty($_SESSION['flash'])) {
 }
 
 $stmt = $pdo->prepare("
-  SELECT id, name, format, description, is_public, updated_at
-  FROM decks
-  WHERE user_id = ?
-  ORDER BY updated_at DESC, name ASC
+  SELECT
+    d.id,
+    d.name,
+    d.format,
+    d.description,
+    d.updated_at,
+
+    c.image_small,
+    c.name AS card_name
+
+  FROM decks d
+
+  LEFT JOIN deck_cards dc
+    ON dc.id = (
+      SELECT dc2.id
+      FROM deck_cards dc2
+      WHERE dc2.deck_id = d.id
+      ORDER BY dc2.updated_at DESC
+      LIMIT 1
+    )
+
+  LEFT JOIN cards c
+    ON c.id = dc.card_id
+
+  WHERE d.user_id = ?
+
+  ORDER BY d.updated_at DESC
 ");
+$stmt->execute([$uid]);
+$decks = $stmt->fetchAll();
 $stmt->execute([$uid]);
 $decks = $stmt->fetchAll();
 ?>
@@ -126,6 +151,14 @@ $decks = $stmt->fetchAll();
                     <div class="actions" style="margin-top:10px;">
                       <a class="btn secondary" href="deck.php?id=<?= (int)$d['id'] ?>">Open / edit</a>
                     </div>
+
+                    <div class="deckPreview">
+                    <?php if (!empty($d['image_small'])): ?>
+                      <img src="<?= h($d['image_small']) ?>" alt="<?= h($d['card_name']) ?> preview">
+                    <?php else: ?>
+                      <div class="no-image">No cards</div>
+                        <?php endif; ?>
+
                   </article>
                 <?php endforeach; ?>
               </div>

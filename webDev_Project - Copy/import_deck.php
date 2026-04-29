@@ -57,40 +57,53 @@ function parse_decklist_lines(string $raw): array {
   $lines = preg_split("/\r\n|\r|\n/", $raw) ?: [];
   $out = [];
 
+  $section = 'main';
+
   foreach ($lines as $line) {
     $line = trim($line);
     if ($line === '') continue;
+
+    // Ignore comments
     if (str_starts_with($line, '#') || str_starts_with($line, '//')) continue;
 
-    // Accept:
-    // "4 Lightning Bolt"
-    // "Lightning Bolt"
-    // "SB: 2 Wear // Tear"
-    $section = 'main';
-    $line2 = $line;
-
-    if (preg_match('/^(SB:|SIDE:)\s*/i', $line2)) {
+    // Detect section headers
+    if (preg_match('/^(sideboard|sb)\b/i', $line)) {
       $section = 'side';
-      $line2 = preg_replace('/^(SB:|SIDE:)\s*/i', '', $line2);
-      $line2 = trim((string)$line2);
+      continue;
+    }
+    if (preg_match('/^(deck|main deck|commander)\b/i', $line)) {
+      $section = 'main';
+      continue;
+    }
+
+    // Force sideboard via prefix
+    if (preg_match('/^(SB:|SIDE:)\s*(.+)$/i', $line, $m)) {
+      $section = 'side';
+      $line = trim($m[2]);
     }
 
     $qty = 1;
-    $name = $line2;
+    $name = $line;
 
-    if (preg_match('/^(\d+)\s+(.+)$/', $line2, $m)) {
+    // Extract quantity
+    if (preg_match('/^(\d+)\s+(.+)$/', $line, $m)) {
       $qty = max(1, min(999, (int)$m[1]));
-      $name = trim($m[2]);
+      $name = $m[2];
     }
 
-    // Strip common suffixes like "(SET) 123" if pasted from other sites.
-    // Keep it basic so we don't break valid names.
-    $name = preg_replace('/\s+\([A-Za-z0-9]{2,6}\)\s+\d+[A-Za-z]*$/', '', (string)$name);
-    $name = trim((string)$name);
+    // Strip set codes like (M21), [MH2], etc
+    $name = preg_replace('/[\(\[].*?[\)\]]/', '', $name);
+
+    // Strip foil markers like *F*
+    $name = str_replace(['*F*', 'FOIL'], '', $name);
+
+    // Clean up collector numbers at end
+    $name = preg_replace('/\s+\d+[A-Za-z]*$/', '', $name);
+
+    $name = trim($name);
 
     if ($name === '') continue;
 
-    // We use exact name search first; it’s the most reliable.
     $query = '!"' . str_replace('"', '\"', $name) . '"';
 
     $out[] = [
