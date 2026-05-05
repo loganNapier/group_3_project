@@ -2,13 +2,13 @@
 // delete_deck.php
 declare(strict_types=1);
 
-require_once (__DIR__ . "/auth/config.php");
-require_once (__DIR__ . "/auth/auth.php");
+require_once (__DIR__ . "/../auth/config.php");
+require_once (__DIR__ . "/../auth/auth.php");
 
 require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  header("Location: decks.php");
+  header("Location: ../decks.php");
   exit;
 }
 
@@ -23,7 +23,7 @@ $deckId = (int)($_POST['deck_id'] ?? 0);
 
 function back(string $msg): void {
   $_SESSION['flash'] = $msg;
-  header("Location: decks.php");
+  header("Location: ../decks.php");
   exit;
 }
 
@@ -43,7 +43,7 @@ try {
   $del->execute([$deckId, $uid]);
 
   $_SESSION['flash'] = "Deck deleted.";
-  header("Location: decks.php");
+  header("Location: ../decks.php");
   exit;
 } catch (PDOException $e) {
   back("Database error while deleting deck.");

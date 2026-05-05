@@ -81,7 +81,7 @@ console.log('deck.js has been read');
               USD: ${usd ? "$" + esc(usd) : "—"} • Foil: ${usdFoil ? "$" + esc(usdFoil) : "—"} • Etched: ${usdEtched ? "$" + esc(usdEtched) : "—"}
             </div>
 
-            <form action="add_to_deck.php" method="post" style="margin-top:10px;">
+            <form action="/deck_config/add_to_deck.php" method="post" style="margin-top:10px;">
               <input type="hidden" name="csrf" value="${esc(csrfToken)}">
               <input type="hidden" name="deck_id" value="${esc(deckId)}">
 
