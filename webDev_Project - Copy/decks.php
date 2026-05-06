@@ -93,7 +93,7 @@ $decks = $stmt->fetchAll();
           <section class="card" aria-labelledby="createTitle">
             <h2 id="createTitle">Create a deck</h2>
 
-            <form action="create_deck.php" method="post">
+            <form action="../deck_config/create_deck.php" method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
 
               <label for="name">Deck name</label>
