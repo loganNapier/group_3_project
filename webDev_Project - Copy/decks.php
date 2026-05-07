@@ -93,7 +93,7 @@ $decks = $stmt->fetchAll();
           <section class="card" aria-labelledby="createTitle">
             <h2 id="createTitle">Create a deck</h2>
 
-            <form action="../deck_config/create_deck.php" method="post">
+            <form action="deck_config/create_deck.php" method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
 
               <label for="name">Deck name</label>
@@ -118,7 +118,7 @@ $decks = $stmt->fetchAll();
 
               <div class="actions" style="margin-top:10px;">
                 <button class="btn" type="submit">Create deck</button>
-                <a class="btn secondary" href="import_deck.php">Import decklist</a>
+                <a class="btn secondary" href="deck_config/import_deck.php">Import decklist</a>
               </div>
             </form>
           </section>

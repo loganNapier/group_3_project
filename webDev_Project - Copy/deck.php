@@ -215,7 +215,7 @@ $deckKnown = $mainKnown + $sideKnown;
 
             <button type="submit">Search</button>
 
-            <a class="btnSecondary" href="import_deck.php?deck_id=<?= (int)$deckId ?>" style="text-decoration:none;padding:10px 12px;border-radius:12px;border:1px solid var(--border);">
+            <a class="btnSecondary" href="deck_config/import_deck.php?deck_id=<?= (int)$deckId ?>" style="text-decoration:none;padding:10px 12px;border-radius:12px;border:1px solid var(--border);">
               Import decklist
             </a>
           </form>
