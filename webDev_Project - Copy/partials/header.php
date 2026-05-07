@@ -2,30 +2,31 @@
 // partials/header.php
 declare(strict_types=1);
 
-if (!isset($activeNav)) $activeNav = "";   // home | cards | collection | batch
+if (!isset($activeNav)) $activeNav = "";   // home | cards | collection | batch | decks
 if (!isset($loggedIn)) $loggedIn = false;  // set in each page before include
 ?>
 <a class="skip" href="#main">Skip to main content</a>
 
-<header class="siteHeader">
-  <div class="wrap headerRow">
-    <div class="brand">MTG Collection DB</div>
-
-    <nav aria-label="Primary navigation">
-      <ul class="navList">
-        <li><a href="index.php"<?= $activeNav === "home" ? ' aria-current="page"' : '' ?>>Home</a></li>
-        <li><a href="cards.php"<?= $activeNav === "cards" ? ' aria-current="page"' : '' ?>>Browse cards</a></li>
-
-        <?php if ($loggedIn): ?>
-          <li><a href="collection.php"<?= $activeNav === "collection" ? ' aria-current="page"' : '' ?>>My collection</a></li>
-          <li><a href="batch_add.php"<?= $activeNav === "batch" ? ' aria-current="page"' : '' ?>>Batch add</a></li>
-          <li><a href="logout.php">Logout</a></li>
-        <?php else: ?>
-          <li><a href="index.php#login">Login</a></li>
-          <li><a href="index.php#register">Register</a></li>
-        <?php endif; ?>
-      </ul>
-    </nav>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">MTG Collection DB</div>
+      <nav aria-label="Primary navigation">
+        <ul>
+          <li><a href="index.php"<?= $activeNav === "home" ? ' aria-current="page"' : '' ?>>Home</a></li>
+          <li><a href="cards.php"<?= $activeNav === "cards" ? ' aria-current="page"' : '' ?>>Browse cards</a></li>
+          <?php if ($loggedIn): ?>
+            <li><a href="collection.php"<?= $activeNav === "collection" ? ' aria-current="page"' : '' ?>>My collection</a></li>
+            <li><a href="batch_add.php"<?= $activeNav === "batch" ? ' aria-current="page"' : '' ?>>Batch add</a></li>
+            <li><a href="decks.php"<?= $activeNav === "decks" ? ' aria-current="page"' : '' ?>>Decks</a></li>
+            <li><a href="logout.php">Logout</a></li>
+          <?php else: ?>
+            <li><a href="index.php#login">Login</a></li>
+            <li><a href="index.php#register">Register</a></li>
+          <?php endif; ?>
+        </ul>
+      </nav>
+    </div>
   </div>
 </header>
 

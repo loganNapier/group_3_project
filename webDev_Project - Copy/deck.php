@@ -115,24 +115,11 @@ $deckKnown = $mainKnown + $sideKnown;
 <body data-csrf="<?= h(csrf_token()) ?>" data-deck-id="<?= (int)$deckId ?>">
   <a class="skip" href="#main">Skip to main content</a>
 
-  <header>
-    <div class="wrap">
-      <div class="top">
-        <div class="brand">MTG Collection DB</div>
-        <nav aria-label="Primary navigation">
-          <ul>
-            <li><a href="index.php">Home</a></li>
-            <li><a href="cards.php">Browse cards</a></li>
-            <li><a href="collection.php">My collection</a></li>
-            <li><a href="batch_add.php">Batch add</a></li>
-            <li><a href="decks.php" aria-current="page">Decks</a></li>
-            <li><a href="logout.php">Logout</a></li>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </header>
-
+<?php
+$loggedIn = true;
+$activeNav = "decks";
+include 'partials/header.php';
+?>
   <main id="main">
     <div class="wrap">
       <section class="card" aria-labelledby="deckTitle">
@@ -375,11 +362,7 @@ $deckKnown = $mainKnown + $sideKnown;
         </section>
       </section>
 
-      <footer>
-        <div class="wrap">
-          <small>School project. Not affiliated with Wizards of the Coast.</small>
-        </div>
-      </footer>
+      <?php include 'partials/footer.php'; ?>
     </div>
   </main>
   /**Import Certifcation Token and Deck ID */

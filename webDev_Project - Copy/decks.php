@@ -23,6 +23,7 @@ $stmt = $pdo->prepare("
     d.format,
     d.description,
     d.updated_at,
+    d.is_public,
 
     c.image_small,
     c.name AS card_name
@@ -47,8 +48,6 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$uid]);
 $decks = $stmt->fetchAll();
-$stmt->execute([$uid]);
-$decks = $stmt->fetchAll();
 ?>
 <!doctype html>
 <html lang="en">
@@ -59,25 +58,11 @@ $decks = $stmt->fetchAll();
   <link rel="stylesheet" href="./css/decks.css" />
 </head>
 <body>
-  <a class="skip" href="#main">Skip to main content</a>
-
-  <header>
-    <div class="wrap">
-      <div class="top">
-        <div class="brand">MTG Collection DB</div>
-        <nav aria-label="Primary navigation">
-          <ul>
-            <li><a href="index.php">Home</a></li>
-            <li><a href="cards.php">Browse cards</a></li>
-            <li><a href="collection.php">My collection</a></li>
-            <li><a href="batch_add.php">Batch add</a></li>
-            <li><a href="decks.php" aria-current="page">Decks</a></li>
-            <li><a href="logout.php">Logout</a></li>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </header>
+<?php
+$loggedIn = true;
+$activeNav = "decks";
+include 'partials/header.php';
+?>
 
   <main id="main">
     <div class="wrap">
@@ -118,7 +103,7 @@ $decks = $stmt->fetchAll();
 
               <div class="actions" style="margin-top:10px;">
                 <button class="btn" type="submit">Create deck</button>
-                <a class="btn secondary" href="deck_config/import_deck.php">Import decklist</a>
+                
               </div>
             </form>
           </section>
@@ -167,9 +152,7 @@ $decks = $stmt->fetchAll();
         </div>
       </section>
 
-      <footer style="border-top:1px solid var(--border); color:var(--muted); padding:14px 0; margin-top:12px;">
-        <small>School project. Not affiliated with Wizards of the Coast.</small>
-      </footer>
+      <?php include 'partials/footer.php'; ?>
     </div>
   </main>
 </body>
