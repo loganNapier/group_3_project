@@ -178,7 +178,7 @@ $deckKnown = $mainKnown + $sideKnown;
           <p style="margin-top:12px;"><?= h((string)$deck['description']) ?></p>
         <?php endif; ?>
 
-        <form action="/deck_config/delete_deck.php" method="post" style="margin-top:12px;">
+        <form action="delete_deck.php" method="post" style="margin-top:12px;">
           <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
           <input type="hidden" name="deck_id" value="<?= (int)$deckId ?>">
           <button type="submit" class="dangerBtn" aria-label="Delete deck <?= h((string)$deck['name']) ?>">
@@ -254,7 +254,7 @@ $deckKnown = $mainKnown + $sideKnown;
                         <?php if (!empty($r['price_updated_at'])): ?> • Updated: <?= h((string)$r['price_updated_at']) ?><?php endif; ?>
                       </div>
 
-                      <form action="/deck_config/update_deck_card.php" method="post" style="margin-top:10px;">
+                      <form action="update_deck_card.php" method="post" style="margin-top:10px;">
                         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="deck_id" value="<?= (int)$deckId ?>">
                         <input type="hidden" name="deck_card_id" value="<?= (int)$deckCardId ?>">
@@ -382,6 +382,7 @@ $deckKnown = $mainKnown + $sideKnown;
       </footer>
     </div>
   </main>
+  /**Import Certifcation Token and Deck ID */
   <script>
   window.CSRF_TOKEN = document.body.dataset.csrf;
   window.DECK_ID = document.body.dataset.deckId;
