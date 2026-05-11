@@ -30,6 +30,9 @@ function loadAllCards(string $path): array {
     return [];
   }
 
+  // Decompress if gzipped
+  $json = @gzdecode($json) ?: $json;
+
   $data = json_decode($json, true);
   if (!is_array($data)) {
     return [];
@@ -80,7 +83,7 @@ function fetchScryfall(string $url): ?string {
 
   $res = curl_exec($ch);
   $err = curl_error($ch);
-  curl_close($ch);
+
 
   if ($err) {
     return null;
@@ -117,9 +120,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $line = trim($line);
         if ($line === '') continue;
 
+        $qty = 1;
+        $query = $line;
+
+        // Extract quantity if present
+        if (preg_match('/^(\d+)\s+(.+)$/', $line, $m)) {
+          $qty = max(1, min(999, (int)$m[1]));
+          $query = trim($m[2]);
+        }
+
         $rows[] = [
-          'query' => $line,
-          'qty' => 1
+          'query' => $query,
+          'qty' => $qty
         ];
       }
     }
@@ -165,68 +177,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $added = 0;
     $errors = [];
 
-    $allCardsPath = __DIR__ . '/all-cards.json';
+    $allCardsPath = __DIR__ . '/oracle-cards.json';
     $allCards = loadAllCards($allCardsPath);
-    $useLocal = !empty($allCards);
+    if (empty($allCards)) {
+      back("Bulk data file not found or invalid. Please download oracle-cards.json from Scryfall bulk data.");
+    }
+
+    $useLocal = true;
 
     foreach ($rows as $r) {
-      $card = null;
-
-      if ($useLocal) {
-        $card = findCardInLocalJson($r['query'], $allCards);
-        if ($card === null) {
-          $errors[] = "{$r['query']}: Card not found in local JSON";
-          continue;
-        }
-      } else {
-        $query = urlencode($r['query']);
-
-        $url1 = "https://api.scryfall.com/cards/named?fuzzy={$query}";
-        $url2 = "https://api.scryfall.com/cards/search?q={$query}&unique=cards";
-
-        /* ---------------- try fuzzy ---------------- */
-        $json = fetchScryfall($url1);
-        if ($json === null) {
-          $errors[] = "{$r['query']}: API error (fuzzy lookup)";
-          continue;
-        }
-
-        $card = json_decode($json, true);
-
-        /* ---------------- fallback if needed ---------------- */
-        if (!is_array($card) || ($card['object'] ?? '') !== 'card') {
-
-          $json = fetchScryfall($url2);
-          if ($json === null) {
-            $errors[] = "{$r['query']}: API error (search fallback)";
-            continue;
-          }
-
-          $search = json_decode($json, true);
-
-          if (!is_array($search)) {
-            $errors[] = "{$r['query']}: Invalid search response";
-            continue;
-          }
-
-          if (($search['object'] ?? '') === 'error') {
-            $errors[] = "{$r['query']}: Search API error - " . ($search['details'] ?? 'unknown');
-            continue;
-          }
-
-          if (!empty($search['data']) && is_array($search['data']) && !empty($search['data'][0])) {
-            $card = $search['data'][0];
-          } else {
-            $errors[] = "{$r['query']}: Card not found";
-            continue;
-          }
-        }
-
-        /* ---------------- FINAL VALIDATION ---------------- */
-        if (!is_array($card) || !isset($card['id'])) {
-          $errors[] = "{$r['query']}: Invalid card data from API";
-          continue;
-        }
+      $card = findCardInLocalJson($r['query'], $allCards);
+      if ($card === null) {
+        $errors[] = "{$r['query']}: Card not found in local JSON";
+        continue;
       }
 
       try {
@@ -305,9 +268,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->commit();
         $added++;
-        if (!$useLocal) {
-          usleep(200000); // 0.2s delay = safe under Scryfall limits
-        }
 
       } catch (PDOException $e) {
         if ($pdo->inTransaction()) {

@@ -284,27 +284,39 @@ if (!empty($_SESSION['flash'])) {
     `;
   }
 
-  async function runSearch(){
+  let currentPage = 1;
+
+  async function runSearch(page = 1){
     const q = qEl.value.trim();
     if (!q){
-      resultsEl.innerHTML = "";
-      setStatus("Enter a search query.", "bad");
-      qEl.focus();
+      if (page === 1) {
+        resultsEl.innerHTML = "";
+        setStatus("Enter a search query.", "bad");
+        qEl.focus();
+      }
       return;
     }
 
-    setStatus("Searching Scryfall…");
-    resultsEl.innerHTML = "";
+    if (page === 1) {
+      setStatus("Searching Scryfall…");
+      resultsEl.innerHTML = "";
+    }
 
     const url = new URL("https://api.scryfall.com/cards/search");
     url.searchParams.set("q", q);
     url.searchParams.set("unique", uniqueEl.value);
     url.searchParams.set("order", orderEl.value);
     url.searchParams.set("dir", "auto");
+    url.searchParams.set("page", page);
 
     try{
       const res = await fetch(url.toString(), { headers: { "Accept": "application/json" }});
       const data = await res.json();
+
+      if (!data || typeof data !== 'object') {
+        setStatus("Invalid response from Scryfall.", "bad");
+        return;
+      }
 
       if (!res.ok){
         setStatus(data?.details || "Scryfall request failed.", "bad");
@@ -317,14 +329,30 @@ if (!empty($_SESSION['flash'])) {
         return;
       }
 
-      resultsEl.innerHTML = list.map(resultHTML).join("");
-      setStatus(`Found ${data.total_cards ?? list.length}. Showing ${list.length}.`, "ok");
+      const html = list.map(resultHTML).join("");
+      if (page === 1) {
+        resultsEl.innerHTML = html;
+      } else {
+        resultsEl.insertAdjacentHTML('beforeend', html);
+      }
+
+      currentPage = page;
+      setStatus(`Found ${data.total_cards ?? list.length}. Showing ${resultsEl.children.length}.`, "ok");
+
+      // Remove existing load more button if present
+      const existingBtn = document.getElementById('loadMore');
+      if (existingBtn) existingBtn.remove();
+      console.log('has_more:', data.has_more, 'total_cards:', data.total_cards);
+      if (data.has_more || data.total_cards > resultsEl.children.length) {
+        resultsEl.insertAdjacentHTML('beforeend', '<button id="loadMore" style="margin-top:10px;">Load more</button>');
+        document.getElementById('loadMore').addEventListener('click', () => runSearch(page + 1));
+      }2
     } catch {
       setStatus("Network error talking to Scryfall.", "bad");
     }
   }
 
-  form.addEventListener('submit', (e) => { e.preventDefault(); runSearch(); });
+  form.addEventListener('submit', (e) => { e.preventDefault(); runSearch(1); });
   clearBtn.addEventListener('click', () => {
     qEl.value = "";
     resultsEl.innerHTML = "";

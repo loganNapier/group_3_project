@@ -281,6 +281,12 @@ button {
   font-weight: 900;
 }
 
+.owned-icon {
+  color: var(--ok);
+  font-weight: bold;
+  margin-left: 8px;
+}
+
 .editGrid {
   display: grid;
   grid-template-columns: 90px 140px 160px auto;
