@@ -23,19 +23,6 @@ function back_with_flash(string $msg, int $deckId = 0): void {
   exit;
 }
 
-function scryfall_search_first_print(string $query): ?array {
-  $url = "https://api.scryfall.com/cards/search?q=" . rawurlencode($query) . "&unique=prints&order=released";
-  $json = @file_get_contents($url);
-  if ($json === false) return null;
-
-  $data = json_decode($json, true);
-  if (!is_array($data)) return null;
-  if (!empty($data['object']) && $data['object'] === 'error') return null;
-  if (empty($data['data'][0]) || !is_array($data['data'][0])) return null;
-
-  return $data['data'][0];
-}
-
 function pick_images(array $card): array {
   if (!empty($card['image_uris'])) {
     return [
@@ -51,6 +38,57 @@ function pick_images(array $card): array {
     ];
   }
   return ['small' => '', 'normal' => ''];
+}
+
+function loadAllCards(string $path): array {
+  if (!is_file($path) || !is_readable($path)) {
+    return [];
+  }
+
+  $json = @file_get_contents($path);
+  if ($json === false) {
+    return [];
+  }
+
+  // Decompress if gzipped
+  $json = @gzdecode($json) ?: $json;
+
+  $data = json_decode($json, true);
+  if (!is_array($data)) {
+    return [];
+  }
+
+  if (isset($data['data']) && is_array($data['data'])) {
+    return $data['data'];
+  }
+
+  return $data;
+}
+
+function findCardInLocalJson(string $query, array $allCards): ?array {
+  $needle = mb_strtolower(trim($query));
+
+  foreach ($allCards as $card) {
+    if (!isset($card['name'])) {
+      continue;
+    }
+
+    if (mb_strtolower($card['name']) === $needle) {
+      return $card;
+    }
+  }
+
+  foreach ($allCards as $card) {
+    if (!isset($card['name'])) {
+      continue;
+    }
+
+    if (mb_stripos($card['name'], $query) !== false) {
+      return $card;
+    }
+  }
+
+  return null;
 }
 
 function parse_decklist_lines(string $raw): array {
@@ -163,10 +201,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $items = parse_decklist_lines($rawDecklist);
     if (!$items) back_with_flash("Paste a decklist first.", $deckId);
 
+    $allCardsPath = __DIR__ . '/../oracle-cards.json';
+    $allCards = loadAllCards($allCardsPath);
+    if (empty($allCards)) {
+      back_with_flash("Bulk data file not found. Please download oracle-cards.json from Scryfall bulk data.", $deckId);
+    }
+
     $mode = 'preview';
 
     foreach ($items as $it) {
-      $card = scryfall_search_first_print($it['query']);
+      $card = findCardInLocalJson($it['name'], $allCards);
       if (!$card) {
         $preview[] = [
           'ok' => false,
@@ -174,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'section' => $it['section'],
           'qty' => $it['qty'],
           'name' => $it['name'],
-          'error' => 'No match on Scryfall.',
+          'error' => 'No match in local JSON.',
         ];
         continue;
       }
@@ -203,11 +247,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'price_usd_etched' => (string)($card['prices']['usd_etched'] ?? ''),
       ];
     }
+
+    $_SESSION['deck_preview'] = $preview;
   }
 
   if ($action === 'import') {
-    $items = $_POST['items'] ?? [];
-    if (!is_array($items) || !$items) back_with_flash("Nothing to import. Use Preview first.", $deckId);
+    $items = $_SESSION['deck_preview'] ?? [];
+    if (empty($items)) back_with_flash("No preview data. Use Preview first.", $deckId);
+
+    unset($_SESSION['deck_preview']);
 
     try {
       $pdo->beginTransaction();
@@ -246,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $added = 0;
 
       foreach ($items as $it) {
-        if (!is_array($it)) continue;
+        if (!is_array($it) || empty($it['ok'])) continue;
 
         $scryfallId = trim((string)($it['scryfall_id'] ?? ''));
         $name = trim((string)($it['name'] ?? ''));
@@ -410,34 +458,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <input type="hidden" name="action" value="import">
 
-            <?php foreach ($preview as $p): ?>
-              <?php if (!empty($p['ok'])): ?>
-                <input type="hidden" name="items[][section]" value="<?= h((string)$p['section']) ?>">
-                <input type="hidden" name="items[][qty]" value="<?= (int)$p['qty'] ?>">
-
-                <input type="hidden" name="items[][scryfall_id]" value="<?= h((string)$p['scryfall_id']) ?>">
-                <input type="hidden" name="items[][oracle_id]" value="<?= h((string)$p['oracle_id']) ?>">
-                <input type="hidden" name="items[][name]" value="<?= h((string)$p['name']) ?>">
-                <input type="hidden" name="items[][type_line]" value="<?= h((string)$p['type_line']) ?>">
-                <input type="hidden" name="items[][set_code]" value="<?= h((string)$p['set_code']) ?>">
-                <input type="hidden" name="items[][set_name]" value="<?= h((string)$p['set_name']) ?>">
-                <input type="hidden" name="items[][collector_number]" value="<?= h((string)$p['collector_number']) ?>">
-                <input type="hidden" name="items[][image_small]" value="<?= h((string)$p['image_small']) ?>">
-                <input type="hidden" name="items[][image_normal]" value="<?= h((string)$p['image_normal']) ?>">
-
-                <input type="hidden" name="items[][price_usd]" value="<?= h((string)$p['price_usd']) ?>">
-                <input type="hidden" name="items[][price_usd_foil]" value="<?= h((string)$p['price_usd_foil']) ?>">
-                <input type="hidden" name="items[][price_usd_etched]" value="<?= h((string)$p['price_usd_etched']) ?>">
-              <?php endif; ?>
-            <?php endforeach; ?>
-
             <div class="btnRow">
               <button type="submit">Import into deck</button>
               <a class="btnSecondary" href="../deck.php?id=<?= (int)$deckId ?>">Cancel</a>
             </div>
 
             <p class="small" style="margin-top:10px;">
-              Only preview rows that were found on Scryfall will be imported.
+              Only preview rows that were found will be imported.
             </p>
           </form>
         <?php endif; ?>

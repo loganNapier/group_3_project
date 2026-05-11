@@ -241,6 +241,12 @@ textarea {
   font-weight: 900;
 }
 
+.owned-icon {
+  color: var(--ok);
+  font-weight: bold;
+  margin-left: 8px;
+}
+
 .meta {
   color: var(--muted);
   font-size: 0.92rem;

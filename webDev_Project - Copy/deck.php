@@ -58,13 +58,21 @@ $stmt = $pdo->prepare("
     c.price_usd,
     c.price_usd_foil,
     c.price_usd_etched,
-    c.price_updated_at
+    c.price_updated_at,
+
+    COALESCE(owned.owned_qty, 0) AS owned_qty
   FROM deck_cards dc
   JOIN cards c ON c.id = dc.card_id
+  LEFT JOIN (
+    SELECT card_id, finish, SUM(qty) AS owned_qty
+    FROM user_collection
+    WHERE user_id = ?
+    GROUP BY card_id, finish
+  ) owned ON owned.card_id = dc.card_id AND owned.finish = dc.finish
   WHERE dc.deck_id = ?
   ORDER BY dc.section ASC, c.name ASC
 ");
-$stmt->execute([$deckId]);
+$stmt->execute([$uid, $deckId]);
 $deckCards = $stmt->fetchAll();
 
 $main = [];
@@ -165,7 +173,7 @@ include 'partials/header.php';
           <p style="margin-top:12px;"><?= h((string)$deck['description']) ?></p>
         <?php endif; ?>
 
-        <form action="delete_deck.php" method="post" style="margin-top:12px;">
+        <form action="/deck_config/delete_deck.php" method="post" style="margin-top:12px;">
           <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
           <input type="hidden" name="deck_id" value="<?= (int)$deckId ?>">
           <button type="submit" class="dangerBtn" aria-label="Delete deck <?= h((string)$deck['name']) ?>">
@@ -234,7 +242,12 @@ include 'partials/header.php';
                       <?php endif; ?>
                     </div>
                     <div>
-                      <div class="name"><?= h((string)$r['name']) ?></div>
+                      <div class="name">
+                        <?= h((string)$r['name']) ?>
+                        <?php if ((int)$r['owned_qty'] >= (int)$r['qty']): ?>
+                          <span class="owned-icon" title="Owned in collection">✓</span>
+                        <?php endif; ?>
+                      </div>
                       <div class="small"><?= h((string)($r['type_line'] ?? '')) ?></div>
                       <div class="small">
                         Price: <?= $p === null ? '—' : h(money_val((string)$p)) ?>
@@ -307,7 +320,12 @@ include 'partials/header.php';
                       <?php endif; ?>
                     </div>
                     <div>
-                      <div class="name"><?= h((string)$r['name']) ?></div>
+                      <div class="name">
+                        <?= h((string)$r['name']) ?>
+                        <?php if ((int)$r['owned_qty'] >= (int)$r['qty']): ?>
+                          <span class="owned-icon" title="Owned in collection">✓</span>
+                        <?php endif; ?>
+                      </div>
                       <div class="small"><?= h((string)($r['type_line'] ?? '')) ?></div>
                       <div class="small">
                         Price: <?= $p === null ? '—' : h(money_val((string)$p)) ?>

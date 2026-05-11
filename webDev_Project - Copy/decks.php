@@ -26,7 +26,19 @@ $stmt = $pdo->prepare("
     d.is_public,
 
     c.image_small,
-    c.name AS card_name
+    c.name AS card_name,
+
+    CASE WHEN (
+      SELECT COUNT(*)
+      FROM deck_cards dc2
+      LEFT JOIN (
+        SELECT card_id, finish, SUM(qty) AS owned_qty
+        FROM user_collection
+        WHERE user_id = d.user_id
+        GROUP BY card_id, finish
+      ) owned ON owned.card_id = dc2.card_id AND owned.finish = dc2.finish
+      WHERE dc2.deck_id = d.id AND (owned.owned_qty IS NULL OR owned.owned_qty < dc2.qty)
+    ) = 0 THEN 1 ELSE 0 END AS is_fully_owned
 
   FROM decks d
 
@@ -119,7 +131,12 @@ include 'partials/header.php';
                 <?php foreach ($decks as $d): ?>
                   <article class="deckItem" role="listitem">
                     <div class="deckTop">
-                      <div class="deckName"><?= h((string)$d['name']) ?></div>
+                      <div class="deckName">
+                        <?= h((string)$d['name']) ?>
+                        <?php if (!empty($d['is_fully_owned'])): ?>
+                          <span class="owned-icon" title="All cards owned in collection">✓</span>
+                        <?php endif; ?>
+                      </div>
                       <div class="pill"><?= !empty($d['is_public']) ? 'Public' : 'Private' ?></div>
                     </div>
 
