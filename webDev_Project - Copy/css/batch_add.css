@@ -182,8 +182,8 @@ legend {
 .actions {
   display: flex;
   gap: 10px;
+  margin-top: 12px;
   flex-wrap: wrap;
-  margin-top: 10px;
 }
 
 .btn {
@@ -263,3 +263,39 @@ legend {
   
 }
 
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.previewTable td,
+.previewTable th {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  vertical-align: top;
+}
+
+.previewCard {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.previewCard img {
+  width: 50px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.noImg {
+  width: 50px;
+  height: 70px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #0c121a;
+}
+
+.previewName {
+  font-weight: 800;
+}

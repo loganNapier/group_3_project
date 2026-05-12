@@ -4,10 +4,13 @@ declare(strict_types=1);
 require_once __DIR__ . "/auth/config.php";
 require_once __DIR__ . "/auth/auth.php";
 
+
 require_login();
+$user = current_user($pdo);
+$loggedIn = (bool)$user;
 $uid = (int)$_SESSION['uid'];
 
-ob_start();
+
 
 function back(string $msg): void {
   $_SESSION['flash'] = $msg;
@@ -26,23 +29,14 @@ function loadAllCards(string $path): array {
   }
 
   $json = @file_get_contents($path);
-  if ($json === false) {
-    return [];
-  }
+  if ($json === false) return [];
 
-  // Decompress if gzipped
   $json = @gzdecode($json) ?: $json;
 
   $data = json_decode($json, true);
-  if (!is_array($data)) {
-    return [];
-  }
+  if (!is_array($data)) return [];
 
-  if (isset($data['data']) && is_array($data['data'])) {
-    return $data['data'];
-  }
-
-  return $data;
+  return $data['data'] ?? $data;
 }
 
 function findCardNames(array $card): array {
@@ -67,9 +61,7 @@ function findCardInLocalJson(string $query, array $allCards): ?array {
   $needle = mb_strtolower(trim($query));
 
   foreach ($allCards as $card) {
-    if (!isset($card['name'])) {
-      continue;
-    }
+    if (!isset($card['name'])) continue;
 
     foreach (findCardNames($card) as $name) {
       if (mb_strtolower($name) === $needle) {
@@ -79,9 +71,7 @@ function findCardInLocalJson(string $query, array $allCards): ?array {
   }
 
   foreach ($allCards as $card) {
-    if (!isset($card['name'])) {
-      continue;
-    }
+    if (!isset($card['name'])) continue;
 
     foreach (findCardNames($card) as $name) {
       if (mb_stripos($name, $query) !== false) {
@@ -91,27 +81,6 @@ function findCardInLocalJson(string $query, array $allCards): ?array {
   }
 
   return null;
-}
-
-function fetchScryfall(string $url): ?string {
-  $ch = curl_init($url);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-  curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'User-Agent: MTG-Collection-Tracker/1.0',
-    'Accept: application/json'
-  ]);
-
-  $res = curl_exec($ch);
-  $err = curl_error($ch);
-
-
-  if ($err) {
-    return null;
-  }
-
-  return $res;
 }
 
 /* FLASH */
@@ -145,7 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $qty = 1;
         $query = $line;
 
-        // Extract quantity if present
         if (preg_match('/^(\d+)\s+(.+)$/', $line, $m)) {
           $qty = max(1, min(999, (int)$m[1]));
           $query = trim($m[2]);
@@ -201,24 +169,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $allCardsPath = __DIR__ . '/oracle-cards.json';
     $allCards = loadAllCards($allCardsPath);
-    if (empty($allCards)) {
-      back("Bulk data file not found or invalid. Please download oracle-cards.json from Scryfall bulk data.");
-    }
 
-    $useLocal = true;
+    if (empty($allCards)) {
+      back("Missing oracle-cards.json");
+    }
 
     foreach ($rows as $r) {
       $card = findCardInLocalJson($r['query'], $allCards);
       if ($card === null) {
-        $errors[] = "{$r['query']}: Card not found in local JSON";
+        $errors[] = "{$r['query']}: not found";
         continue;
       }
 
       try {
-
         $pdo->beginTransaction();
 
-        // UPSERT into cards table
         $stmt = $pdo->prepare("
           INSERT INTO cards (
             scryfall_id, oracle_id, name, type_line,
@@ -226,18 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             image_small, image_normal,
             price_usd, price_usd_foil, price_usd_etched, price_updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-          ON DUPLICATE KEY UPDATE
-            name = VALUES(name),
-            type_line = VALUES(type_line),
-            set_code = VALUES(set_code),
-            set_name = VALUES(set_name),
-            collector_number = VALUES(collector_number),
-            image_small = VALUES(image_small),
-            image_normal = VALUES(image_normal),
-            price_usd = VALUES(price_usd),
-            price_usd_foil = VALUES(price_usd_foil),
-            price_usd_etched = VALUES(price_usd_etched),
-            price_updated_at = NOW()
+          ON DUPLICATE KEY UPDATE name = VALUES(name)
         ");
 
         $stmt->execute([
@@ -255,27 +209,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $card['prices']['usd_etched'] ?? null
         ]);
 
-        // Get card ID
         $stmt = $pdo->prepare("SELECT id FROM cards WHERE scryfall_id = ?");
         $stmt->execute([$card['id']]);
         $cardId = (int)$stmt->fetchColumn();
 
-        if (!$cardId) {
-          $pdo->rollBack();
-          $errors[] = "{$card['name']}: Database error (card not inserted)";
-          continue;
-        }
-
-        // Insert into user_collection
         $stmt = $pdo->prepare("
           INSERT INTO user_collection (
             user_id, card_id, qty,
             card_condition, card_language,
             finish, batch_id
           ) VALUES (?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE
-            qty = qty + VALUES(qty),
-            batch_id = VALUES(batch_id)
+          ON DUPLICATE KEY UPDATE qty = qty + VALUES(qty)
         ");
 
         $stmt->execute([
@@ -291,79 +235,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->commit();
         $added++;
 
-      } catch (PDOException $e) {
-        if ($pdo->inTransaction()) {
-          $pdo->rollBack();
-        }
-        $errors[] = "{$r['query']}: Database error - " . $e->getMessage();
+      } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        $errors[] = "{$r['query']}: DB error";
       }
     }
 
     unset($_SESSION['batch_preview']);
-    
+
     $msg = "Imported {$added} cards.";
-    if (!empty($errors)) {
+    if ($errors) {
       $_SESSION['batch_errors'] = $errors;
-      $msg .= " (" . count($errors) . " failed)";
+      $msg .= " (" . count($errors) . " errors)";
     }
-    
+
     back($msg);
   }
 
   if ($action === 'undo') {
     unset($_SESSION['batch_preview']);
-    back("Batch cleared.");
+    back("Cleared.");
   }
 }
 ?>
 
 <!doctype html>
-<html lang="en">
+<html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Batch Add</title>
 <link rel="stylesheet" href="./css/batch_add.css">
 </head>
 
 <body>
+<?php require_once __DIR__ . "/partials/header.php"; ?>
 
-<header>
-  <div class="wrap">
-    <div class="top">
-      <div class="brand">MTG Collection DB</div>
-
-      <nav>
-        <ul>
-          <li><a href="index.php">Home</a></li>
-          <li><a href="cards.php">Browse cards</a></li>
-          <li><a href="collection.php">My collection</a></li>
-          <li><a href="batch_add.php" aria-current="page">Batch add</a></li>
-          <li><a href="decks.php">Decks</a></li>
-          <li><a href="logout.php">Logout</a></li>
-        </ul>
-      </nav>
-    </div>
-  </div>
-</header>
 
 <main>
 <div class="wrap">
 
 <?php if ($flash): ?>
   <div class="statusline ok"><?= h($flash) ?></div>
-<?php endif; ?>
-
-<?php if (!empty($_SESSION['batch_errors'])): ?>
-  <section class="card">
-    <h2>Import Errors</h2>
-    <ul style="color: #c33;">
-    <?php foreach ($_SESSION['batch_errors'] as $err): ?>
-      <li><?= h($err) ?></li>
-    <?php endforeach; ?>
-    </ul>
-  </section>
-  <?php unset($_SESSION['batch_errors']); ?>
 <?php endif; ?>
 
 <section class="card">
@@ -373,66 +285,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <form method="post" enctype="multipart/form-data">
 <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
 
-<label>Paste queries</label>
 <textarea name="lines"></textarea>
-
-<label>CSV file</label>
 <input type="file" name="csv_file">
 
-<fieldset>
-<legend>Defaults</legend>
-
-<label>Condition</label>
-<select name="card_condition">
-<option>NM</option><option>LP</option><option>MP</option>
-<option>HP</option><option>DMG</option>
-</select>
-
-<label>Language</label>
-<input name="card_language" value="English">
-
-<label>Finish</label>
-<select name="finish">
-<option value="nonfoil">Nonfoil</option>
-<option value="foil">Foil</option>
-<option value="etched">Etched</option>
-</select>
-
-</fieldset>
-
 <div class="actions">
-<button class="btn" name="action" value="preview">Preview</button>
-<button class="btn danger" name="action" value="undo">Clear</button>
+  <button class="btn" name="action" value="preview">Preview</button>
+  <button class="btn danger" name="action" value="undo">Clear</button>
 </div>
-
 </form>
 
 </section>
 
 <?php if (!empty($_SESSION['batch_preview'])): ?>
 
-<section class="card">
+<?php
+$allCards = loadAllCards(__DIR__ . '/oracle-cards.json');
+?>
 
+<section class="card">
 <h2>Preview</h2>
 
 <form method="post">
 <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
 
-<table>
-<tr><th>Query</th><th>Qty</th></tr>
+<table class="previewTable">
+<tr><th>Card</th><th>Qty</th></tr>
 
 <?php foreach ($_SESSION['batch_preview']['rows'] as $r): ?>
-<tr>
-<td><?= h($r['query']) ?></td>
-<td><?= (int)$r['qty'] ?></td>
-</tr>
+  <?php $card = findCardInLocalJson($r['query'], $allCards); ?>
+
+  <tr>
+    <td>
+      <div class="previewCard">
+
+        <?php if (!empty($card['image_uris']['small'])): ?>
+          <img src="<?= h($card['image_uris']['small']) ?>">
+        <?php else: ?>
+          <div class="noImg"></div>
+        <?php endif; ?>
+
+        <div>
+          <div class="previewName">
+            <?= h($card['name'] ?? $r['query']) ?>
+          </div>
+          <div class="small">
+            <?= h($card['set_name'] ?? '') ?>
+          </div>
+        </div>
+
+      </div>
+    </td>
+
+    <td><?= (int)$r['qty'] ?></td>
+  </tr>
 <?php endforeach; ?>
 
 </table>
 
 <div class="actions">
-<button class="btn" name="action" value="confirm">Confirm Import</button>
-<button class="btn danger" name="action" value="undo">Cancel</button>
+  <button class="btn" name="action" value="confirm">Confirm Import</button>
+  <button class="btn danger" name="action" value="undo">Cancel</button>
 </div>
 
 </form>
