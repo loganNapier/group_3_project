@@ -65,7 +65,7 @@ if (!empty($_SESSION['flash'])) {
           <div class="statusline ok" role="status" aria-live="polite"><?= h($flash) ?></div>
         <?php endif; ?>
 
-        <form id="searchForm" class="filters" action="#" method="get" novalidate>
+        <div id="searchForm" class="filters">
           <div class="filterField">
             <label for="q">Search</label>
             <input id="q" name="q" maxlength="200" autocomplete="off" placeholder="e.g., t:elf set:khm" />
@@ -95,11 +95,11 @@ if (!empty($_SESSION['flash'])) {
           </div>
 
           <div class="rowActions">
-            <button type="submit">Search</button>
+            <button type="button" id="searchBtn">Search</button>
             <button type="button" class="btnSecondary" id="clearBtn">Clear</button>
             <div class="help"></div>
           </div>
-        </form>
+        </div>
 
         <div id="status" class="statusline" role="status" aria-live="polite">Ready.</div>
       </section>
@@ -108,6 +108,7 @@ if (!empty($_SESSION['flash'])) {
         <h2 id="resultsTitle">Results</h2>
         <p class="small">Shows up to 20 results per search.</p>
         <div id="results" class="results" aria-label="Search results"></div>
+        <div id="pagination"></div>
       </section>
     </div>
   </main>
@@ -116,12 +117,12 @@ if (!empty($_SESSION['flash'])) {
   const loggedIn = <?= $loggedIn ? 'true' : 'false' ?>;
   const csrfToken = <?= $loggedIn ? json_encode(csrf_token()) : '""' ?>;
 
-  const form = document.getElementById('searchForm');
   const qEl = document.getElementById('q');
   const uniqueEl = document.getElementById('unique');
   const orderEl = document.getElementById('order');
   const statusEl = document.getElementById('status');
   const resultsEl = document.getElementById('results');
+  const paginationEl = document.getElementById('pagination');
   const clearBtn = document.getElementById('clearBtn');
 
   function setStatus(msg, kind=""){
@@ -284,36 +285,65 @@ if (!empty($_SESSION['flash'])) {
     `;
   }
 
-  let currentPage = 1;
+  // --- State ---
+  let allResults = [];
+  let visibleCount = 0;
+  let nextPageUrl = null;
+  let totalCards = 0; // FIX: module-level so closures always see the latest value
 
-  async function runSearch(page = 1){
+  async function runSearch(reset = true){
+
+    console.debug('[MTG] runSearch called, reset=', reset);
+
     const q = qEl.value.trim();
+
     if (!q){
-      if (page === 1) {
-        resultsEl.innerHTML = "";
-        setStatus("Enter a search query.", "bad");
-        qEl.focus();
-      }
+      resultsEl.innerHTML = "";
+      paginationEl.innerHTML = "";
+      setStatus("Enter a search query.", "bad");
+      qEl.focus();
       return;
     }
 
-    if (page === 1) {
+    if (reset){
       setStatus("Searching Scryfall…");
       resultsEl.innerHTML = "";
+      paginationEl.innerHTML = "";
+      allResults = [];
+      visibleCount = 0;
+      nextPageUrl = null;
+      totalCards = 0; // FIX: reset alongside other state
     }
 
-    const url = new URL("https://api.scryfall.com/cards/search");
-    url.searchParams.set("q", q);
-    url.searchParams.set("unique", uniqueEl.value);
-    url.searchParams.set("order", orderEl.value);
-    url.searchParams.set("dir", "auto");
-    url.searchParams.set("page", page);
+    let url;
 
-    try{
-      const res = await fetch(url.toString(), { headers: { "Accept": "application/json" }});
+    if (nextPageUrl && !reset){
+      url = nextPageUrl;
+    } else {
+      const api = new URL("https://api.scryfall.com/cards/search");
+      api.searchParams.set("q", q);
+      api.searchParams.set("unique", uniqueEl.value);
+      api.searchParams.set("order", orderEl.value);
+      api.searchParams.set("dir", "auto");
+      url = api.toString();
+    }
+
+    try {
+
+      console.debug('[MTG] fetching url:', url);
+
+      const res = await fetch(url, {
+        headers: { "Accept": "application/json" }
+      });
+
+      console.debug('[MTG] fetch status:', res.status, res.ok);
+
       const data = await res.json();
 
-      if (!data || typeof data !== 'object') {
+      console.debug('[MTG] parsed data keys:', Object.keys(data ?? {}));
+      console.debug('[MTG] cards in page:', data?.data?.length, '| has_more:', data?.has_more, '| total_cards:', data?.total_cards);
+
+      if (!data || typeof data !== 'object'){
         setStatus("Invalid response from Scryfall.", "bad");
         return;
       }
@@ -323,39 +353,84 @@ if (!empty($_SESSION['flash'])) {
         return;
       }
 
-      const list = Array.isArray(data?.data) ? data.data.slice(0, 20) : [];
-      if (!list.length){
-        setStatus("No results.", "bad");
-        return;
-      }
+      const newCards = Array.isArray(data?.data) ? data.data : [];
 
-      const html = list.map(resultHTML).join("");
-      if (page === 1) {
-        resultsEl.innerHTML = html;
-      } else {
-        resultsEl.insertAdjacentHTML('beforeend', html);
-      }
+      allResults.push(...newCards);
 
-      currentPage = page;
-      setStatus(`Found ${data.total_cards ?? list.length}. Showing ${resultsEl.children.length}.`, "ok");
+      nextPageUrl = data.has_more ? data.next_page : null;
 
-      // Remove existing load more button if present
-      const existingBtn = document.getElementById('loadMore');
-      if (existingBtn) existingBtn.remove();
-      console.log('has_more:', data.has_more, 'total_cards:', data.total_cards);
-      if (data.has_more || data.total_cards > resultsEl.children.length) {
-        resultsEl.insertAdjacentHTML('beforeend', '<button id="loadMore" style="margin-top:10px;">Load more</button>');
-        document.getElementById('loadMore').addEventListener('click', () => runSearch(page + 1));
-      }2
-    } catch {
+      totalCards = data.total_cards ?? allResults.length; // FIX: update module-level var
+
+      renderMoreResults(); // FIX: no argument — reads totalCards from outer scope
+
+    } catch (err) {
+      console.error('[MTG] exception in runSearch:', err);
       setStatus("Network error talking to Scryfall.", "bad");
     }
   }
 
-  form.addEventListener('submit', (e) => { e.preventDefault(); runSearch(1); });
+  function renderMoreResults(){
+
+    console.debug('[MTG] renderMoreResults called', {
+      allResults: allResults.length,
+      visibleCount,
+      nextPageUrl,
+      totalCards
+    });
+
+    const nextChunk = allResults.slice(visibleCount, visibleCount + 20);
+
+    if (nextChunk.length === 0 && !nextPageUrl){
+      // Nothing buffered and no more remote pages — we are truly done.
+      setStatus(`Showing all ${visibleCount} result(s).`, "ok");
+      paginationEl.innerHTML = "";
+      return;
+    }
+
+    if (nextChunk.length > 0){
+      const html = nextChunk.map(resultHTML).join("");
+      resultsEl.insertAdjacentHTML('beforeend', html);
+      visibleCount += nextChunk.length;
+    }
+
+    setStatus(`Found ${totalCards}. Showing ${visibleCount}.`, "ok");
+
+    paginationEl.innerHTML = "";
+
+    const stillHiddenLocal = visibleCount < allResults.length;
+    const hasMoreRemote = nextPageUrl !== null;
+
+    console.debug('[MTG] pagination check', { stillHiddenLocal, hasMoreRemote });
+
+    if (stillHiddenLocal || hasMoreRemote){
+      paginationEl.innerHTML = `
+        <button id="loadMore" style="margin-top:10px;">
+          Load more
+        </button>
+      `;
+
+      document.getElementById('loadMore').addEventListener('click', async () => {
+        if (visibleCount < allResults.length){
+          renderMoreResults();
+        } else if (nextPageUrl){
+          await runSearch(false);
+        }
+      });
+    }
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', () => {
+    runSearch(true);
+  });
+
+  qEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') runSearch(true);
+  });
+
   clearBtn.addEventListener('click', () => {
     qEl.value = "";
     resultsEl.innerHTML = "";
+    paginationEl.innerHTML = "";
     setStatus("Cleared.");
     qEl.focus();
   });

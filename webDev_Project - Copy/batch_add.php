@@ -45,6 +45,24 @@ function loadAllCards(string $path): array {
   return $data;
 }
 
+function findCardNames(array $card): array {
+  $names = [];
+
+  if (!empty($card['name'])) {
+    $names[] = (string)$card['name'];
+  }
+
+  if (!empty($card['card_faces']) && is_array($card['card_faces'])) {
+    foreach ($card['card_faces'] as $face) {
+      if (!empty($face['name'])) {
+        $names[] = (string)$face['name'];
+      }
+    }
+  }
+
+  return array_values(array_unique($names, SORT_STRING));
+}
+
 function findCardInLocalJson(string $query, array $allCards): ?array {
   $needle = mb_strtolower(trim($query));
 
@@ -53,8 +71,10 @@ function findCardInLocalJson(string $query, array $allCards): ?array {
       continue;
     }
 
-    if (mb_strtolower($card['name']) === $needle) {
-      return $card;
+    foreach (findCardNames($card) as $name) {
+      if (mb_strtolower($name) === $needle) {
+        return $card;
+      }
     }
   }
 
@@ -63,8 +83,10 @@ function findCardInLocalJson(string $query, array $allCards): ?array {
       continue;
     }
 
-    if (mb_stripos($card['name'], $query) !== false) {
-      return $card;
+    foreach (findCardNames($card) as $name) {
+      if (mb_stripos($name, $query) !== false) {
+        return $card;
+      }
     }
   }
 

@@ -188,7 +188,8 @@ include 'partials/header.php';
           <h2 id="addTitle">Add cards to this deck</h2>
           <p class="small">Search uses Scryfall syntax. Example: <code>!"Lightning Bolt"</code> or <code>t:elf set:khm</code>.</p>
 
-          <form id="deckSearchForm" class="addControls" action="#" method="get" novalidate>
+          <!-- FIX: replaced <form> with <div> to prevent GET navigation wiping #searchResults -->
+          <div id="deckSearchForm" class="addControls">
             <label class="srOnly" for="q">Search</label>
             <input id="q" name="q" maxlength="200" placeholder='e.g., !"Sol Ring"' />
 
@@ -208,12 +209,13 @@ include 'partials/header.php';
               <option value="etched">Etched</option>
             </select>
 
-            <button type="submit">Search</button>
+            <!-- FIX: type="button" so pressing Enter or clicking never triggers form submission -->
+            <button type="button" id="deckSearchBtn">Search</button>
 
             <a class="btnSecondary" href="deck_config/import_deck.php?deck_id=<?= (int)$deckId ?>" style="text-decoration:none;padding:10px 12px;border-radius:12px;border:1px solid var(--border);">
               Import decklist
             </a>
-          </form>
+          </div>
 
           <div id="searchStatus" class="statusline" role="status" aria-live="polite">Ready.</div>
           <div id="searchResults" class="results" aria-label="Scryfall search results"></div>
@@ -383,7 +385,8 @@ include 'partials/header.php';
       <?php include 'partials/footer.php'; ?>
     </div>
   </main>
-  /**Import Certifcation Token and Deck ID */
+
+  <!-- Import CSRF Token and Deck ID -->
   <script>
   window.CSRF_TOKEN = document.body.dataset.csrf;
   window.DECK_ID = document.body.dataset.deckId;
