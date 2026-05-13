@@ -24,30 +24,8 @@ if (!empty($_SESSION['flash'])) {
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
-
-  <header>
-    <div class="wrap">
-      <div class="top">
-        <div class="brand">MTG Collection DB</div>
-        <nav aria-label="Primary navigation">
-          <ul>
-            <li><a href="index.php" aria-current="page">Home</a></li>
-            <li><a href="cards.php">Browse cards</a></li>
-
-            <?php if ($loggedIn): ?>
-              <li><a href="collection.php">My collection</a></li>
-              <li><a href="batch_add.php">Batch add</a></li>
-              <li><a href="decks.php">Decks</a></li>
-              <li><a href="logout.php">Logout</a></li>
-            <?php else: ?>
-              <li><a href="#login">Login</a></li>
-              <li><a href="#register">Register</a></li>
-            <?php endif; ?>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </header>
+  <?php require_once __DIR__ . "/partials/header.php"; ?>
+  
 
   <main id="main">
     <div class="wrap">

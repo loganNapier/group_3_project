@@ -81,23 +81,7 @@ $hasCards = $totalQty > 0;
 <body data-csrf="<?= h(csrf_token()) ?>">
   <a class="skip" href="#main">Skip to main content</a>
 
-  <header>
-    <div class="wrap">
-      <div class="top">
-        <div class="brand">MTG Collection DB</div>
-        <nav aria-label="Primary navigation">
-          <ul>
-            <li><a href="index.php">Home</a></li>
-            <li><a href="cards.php">Browse cards</a></li>
-            <li><a href="collection.php" aria-current="page">My collection</a></li>
-            <li><a href="batch_add.php">Batch add</a></li>
-            <li><a href="decks.php">Decks</a></li>
-            <li><a href="logout.php">Logout</a></li>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </header>
+  <?php require_once __DIR__ . "/partials/header.php"; ?>
 
   <main id="main">
     <div class="wrap">
@@ -484,4 +468,5 @@ $hasCards = $totalQty > 0;
   loadRows(true);
 </script>
 </body>
+<?php require_once __DIR__ . "/partials/footer.php"; ?>
 </html>

@@ -265,10 +265,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <title>Batch Add</title>
 <link rel="stylesheet" href="./css/batch_add.css">
+<link rel="icon" href="/mtg_collection_tracker_favicon.ico" type="image/x-icon">
 </head>
 
 <body>
-<?php require_once __DIR__ . "/partials/header.php"; ?>
+  <?php require_once __DIR__ . "/partials/header.php"; ?>
 
 
 <main>
