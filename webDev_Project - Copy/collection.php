@@ -1,5 +1,5 @@
 <?php
-// collection.php (updated nav to include Decks)
+// collection.php
 declare(strict_types=1);
 
 require_once (__DIR__ . "/auth/config.php");
@@ -17,37 +17,21 @@ if (!empty($_SESSION['flash'])) {
   unset($_SESSION['flash']);
 }
 
+// --- Summary totals (always over full collection, unfiltered) ---
 $stmt = $pdo->prepare("
   SELECT
-    uc.id AS collection_id,
     uc.qty,
-    uc.card_condition,
-    uc.card_language,
-    uc.finish,
-    uc.is_signed,
-    uc.is_altered,
-    uc.notes,
-    uc.acquired_at,
     uc.purchase_price,
-    uc.updated_at,
-
-    c.name,
-    c.type_line,
-    c.set_code,
-    c.set_name,
-    c.collector_number,
-    c.image_small,
+    uc.finish,
     c.price_usd,
     c.price_usd_foil,
-    c.price_usd_etched,
-    c.price_updated_at
+    c.price_usd_etched
   FROM user_collection uc
   JOIN cards c ON c.id = uc.card_id
   WHERE uc.user_id = ?
-  ORDER BY c.name ASC, uc.card_language ASC, uc.card_condition ASC, uc.finish ASC
 ");
 $stmt->execute([$uid]);
-$rows = $stmt->fetchAll();
+$allRows = $stmt->fetchAll();
 
 function money_val($v): string {
   if ($v === null || $v === '') return '';
@@ -55,33 +39,36 @@ function money_val($v): string {
 }
 function finish_price(array $r): ?float {
   $finish = (string)($r['finish'] ?? 'nonfoil');
-  if ($finish === 'foil')   return ($r['price_usd_foil'] !== null && $r['price_usd_foil'] !== '') ? (float)$r['price_usd_foil'] : null;
+  if ($finish === 'foil')   return ($r['price_usd_foil']   !== null && $r['price_usd_foil']   !== '') ? (float)$r['price_usd_foil']   : null;
   if ($finish === 'etched') return ($r['price_usd_etched'] !== null && $r['price_usd_etched'] !== '') ? (float)$r['price_usd_etched'] : null;
   return ($r['price_usd'] !== null && $r['price_usd'] !== '') ? (float)$r['price_usd'] : null;
 }
 
-$totalQty = 0;
-$totalPaid = 0.0;
-$totalPaidKnown = 0;
-
-$totalEst = 0.0;
-$totalEstKnown = 0;
-
-foreach ($rows as $r) {
+$totalQty = 0; $totalPaid = 0.0; $totalPaidKnown = 0;
+$totalEst = 0.0; $totalEstKnown = 0;
+foreach ($allRows as $r) {
   $qty = (int)$r['qty'];
   $totalQty += $qty;
-
   if ($r['purchase_price'] !== null && $r['purchase_price'] !== '') {
     $totalPaid += ((float)$r['purchase_price']) * $qty;
     $totalPaidKnown += $qty;
   }
-
   $p = finish_price($r);
-  if ($p !== null && $p >= 0) {
-    $totalEst += $p * $qty;
-    $totalEstKnown += $qty;
-  }
+  if ($p !== null && $p >= 0) { $totalEst += $p * $qty; $totalEstKnown += $qty; }
 }
+
+// --- Distinct sets for filter dropdown ---
+$setsStmt = $pdo->prepare("
+  SELECT DISTINCT c.set_code, c.set_name
+  FROM user_collection uc
+  JOIN cards c ON c.id = uc.card_id
+  WHERE uc.user_id = ?
+  ORDER BY c.set_name ASC
+");
+$setsStmt->execute([$uid]);
+$sets = $setsStmt->fetchAll();
+
+$hasCards = $totalQty > 0;
 ?>
 <!doctype html>
 <html lang="en">
@@ -91,26 +78,10 @@ foreach ($rows as $r) {
   <title>My Collection</title>
   <link rel="stylesheet" href="./css/collection.css" />
 </head>
-<body>
+<body data-csrf="<?= h(csrf_token()) ?>">
   <a class="skip" href="#main">Skip to main content</a>
 
-  <header>
-    <div class="wrap">
-      <div class="top">
-        <div class="brand">MTG Collection DB</div>
-        <nav aria-label="Primary navigation">
-          <ul>
-            <li><a href="index.php">Home</a></li>
-            <li><a href="cards.php">Browse cards</a></li>
-            <li><a href="collection.php" aria-current="page">My collection</a></li>
-            <li><a href="batch_add.php">Batch add</a></li>
-            <li><a href="decks.php">Decks</a></li>
-            <li><a href="logout.php">Logout</a></li>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </header>
+  <?php require_once __DIR__ . "/partials/header.php"; ?>
 
   <main id="main">
     <div class="wrap">
@@ -133,179 +104,125 @@ foreach ($rows as $r) {
             <div class="big"><?= (int)$totalQty ?></div>
             <div class="small">Sum of quantities across your collection.</div>
           </div>
-
           <div class="summaryItem">
             <h2>Estimated value (Scryfall)</h2>
             <div class="big"><?= h(money_val((string)$totalEst)) ?></div>
             <div class="small">
-              Based on stored Scryfall price for each row’s finish.
+              Based on stored Scryfall price for each row's finish.
               <?php if ($totalQty > 0): ?>
                 (Price known for <?= (int)$totalEstKnown ?> / <?= (int)$totalQty ?> copies.)
               <?php endif; ?>
             </div>
           </div>
-
           <div class="summaryItem">
             <h2>Total paid (your entries)</h2>
             <div class="big"><?= h(money_val((string)$totalPaid)) ?></div>
             <div class="small">
-              Based on your “Paid” field.
+              Based on your "Paid" field.
               <?php if ($totalQty > 0): ?>
                 (Paid known for <?= (int)$totalPaidKnown ?> / <?= (int)$totalQty ?> copies.)
               <?php endif; ?>
             </div>
           </div>
         </section>
+      </section>
 
-        <?php if (!$rows): ?>
-          <p style="margin-top:12px;">No cards in your collection yet.</p>
-        <?php else: ?>
-          <div class="tableWrap" role="region" aria-label="Editable collection table" tabindex="0">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Card</th>
-                  <th scope="col">Qty</th>
-                  <th scope="col">Condition</th>
-                  <th scope="col">Language</th>
-                  <th scope="col">Finish</th>
-                  <th scope="col">Signed</th>
-                  <th scope="col">Altered</th>
-                  <th scope="col">Acquired</th>
-                  <th scope="col">Paid</th>
-                  <th scope="col">Notes</th>
-                  <th scope="col">Scryfall price</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
+      <?php if (!$hasCards): ?>
+        <section class="card" style="margin-top:12px;">
+          <p>No cards in your collection yet.</p>
+        </section>
+      <?php else: ?>
 
-              <tbody>
-                <?php foreach ($rows as $r): ?>
-                  <?php
-                    $itemId = (int)$r['collection_id'];
-                    $p = finish_price($r);
-                  ?>
-                  <tr>
-                    <td>
-                      <div class="cellCard">
-                        <?php if (!empty($r['image_small'])): ?>
-                          <img class="thumb" src="<?= h((string)$r['image_small']) ?>"
-                               alt="Card image: <?= h((string)$r['name']) ?>" loading="lazy">
-                        <?php else: ?>
-                          <div class="thumb" role="img" aria-label="No image available"></div>
-                        <?php endif; ?>
-
-                        <div>
-                          <div style="font-weight:900;"><?= h((string)$r['name']) ?></div>
-                          <div class="small"><?= h((string)($r['type_line'] ?? '')) ?></div>
-                          <div class="small">
-                            <?= h((string)($r['set_name'] ?? '')) ?>
-                            <?php if (!empty($r['set_code'])): ?> (<?= h((string)$r['set_code']) ?>)<?php endif; ?>
-                            <?php if (!empty($r['collector_number'])): ?> #<?= h((string)$r['collector_number']) ?><?php endif; ?>
-                          </div>
-                          <?php if (!empty($r['price_updated_at'])): ?>
-                            <div class="small">Price updated: <?= h((string)$r['price_updated_at']) ?></div>
-                          <?php endif; ?>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td colspan="11" style="padding:0;">
-                      <form action="update_collection_item.php" method="post" style="padding:10px;">
-                        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
-                        <input type="hidden" name="collection_id" value="<?= $itemId ?>">
-
-                        <div style="display:grid;grid-template-columns: 90px 120px 160px 140px 120px 120px 140px 140px 1.2fr 170px 170px;gap:10px;align-items:start;">
-                          <div>
-                            <label for="qty-<?= $itemId ?>" class="srOnly">Quantity</label>
-                            <input id="qty-<?= $itemId ?>" name="qty" type="number" min="0" max="999" value="<?= (int)$r['qty'] ?>">
-                          </div>
-
-                          <div>
-                            <label for="cond-<?= $itemId ?>" class="srOnly">Condition</label>
-                            <select id="cond-<?= $itemId ?>" name="card_condition">
-                              <?php foreach (['NM','LP','MP','HP','DMG'] as $c): ?>
-                                <option value="<?= h($c) ?>"<?= ((string)$r['card_condition'] === $c) ? ' selected' : '' ?>><?= h($c) ?></option>
-                              <?php endforeach; ?>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label for="lang-<?= $itemId ?>" class="srOnly">Language</label>
-                            <input id="lang-<?= $itemId ?>" name="card_language" maxlength="32" value="<?= h((string)$r['card_language']) ?>">
-                          </div>
-
-                          <div>
-                            <label for="finish-<?= $itemId ?>" class="srOnly">Finish</label>
-                            <select id="finish-<?= $itemId ?>" name="finish">
-                              <option value="nonfoil"<?= ((string)$r['finish'] === 'nonfoil') ? ' selected' : '' ?>>Non-foil</option>
-                              <option value="foil"<?= ((string)$r['finish'] === 'foil') ? ' selected' : '' ?>>Foil</option>
-                              <option value="etched"<?= ((string)$r['finish'] === 'etched') ? ' selected' : '' ?>>Etched</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label style="display:flex;gap:8px;align-items:center;color:var(--muted);">
-                              <input type="checkbox" name="is_signed" value="1"<?= ((int)$r['is_signed'] === 1) ? ' checked' : '' ?>>
-                              <span>Signed</span>
-                            </label>
-                          </div>
-
-                          <div>
-                            <label style="display:flex;gap:8px;align-items:center;color:var(--muted);">
-                              <input type="checkbox" name="is_altered" value="1"<?= ((int)$r['is_altered'] === 1) ? ' checked' : '' ?>>
-                              <span>Altered</span>
-                            </label>
-                          </div>
-
-                          <div>
-                            <label for="acq-<?= $itemId ?>" class="srOnly">Acquired date</label>
-                            <input id="acq-<?= $itemId ?>" name="acquired_at" type="date" value="<?= h((string)($r['acquired_at'] ?? '')) ?>">
-                          </div>
-
-                          <div>
-                            <label for="paid-<?= $itemId ?>" class="srOnly">Purchase price</label>
-                            <input id="paid-<?= $itemId ?>" name="purchase_price" type="number" min="0" step="0.01" inputmode="decimal"
-                                   value="<?= h((string)($r['purchase_price'] ?? '')) ?>">
-                          </div>
-
-                          <div>
-                            <label for="notes-<?= $itemId ?>" class="srOnly">Notes</label>
-                            <textarea id="notes-<?= $itemId ?>" name="notes" maxlength="500"><?= h((string)($r['notes'] ?? '')) ?></textarea>
-                            <div class="small">Max 500 characters.</div>
-                          </div>
-
-                          <div class="small" aria-label="Scryfall price for this finish">
-                            <?php if ($p !== null): ?>
-                              <strong><?= h(money_val((string)$p)) ?></strong>
-                              <div class="small">(<?= h((string)$r['finish']) ?>)</div>
-                            <?php else: ?>
-                              No price listed
-                            <?php endif; ?>
-                          </div>
-
-                          <div>
-                            <div class="btnRow">
-                              <button type="submit" name="action" value="update">Save</button>
-                              <button class="dangerBtn" type="submit" name="action" value="delete"
-                                      aria-label="Remove <?= h((string)$r['name']) ?> from collection">
-                                Remove
-                              </button>
-                            </div>
-                            <div class="small" style="margin-top:8px;">Updated: <?= h((string)$r['updated_at']) ?></div>
-                          </div>
-                        </div>
-                      </form>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
+      <!-- Filter bar -->
+      <section class="card" style="margin-top:12px;" aria-labelledby="filterTitle">
+        <h2 id="filterTitle" class="srOnly">Filter collection</h2>
+        <div id="filterBar" class="filters">
+          <div class="filterField">
+            <label for="f_search">Card name</label>
+            <input id="f_search" type="text" placeholder="e.g., Lightning Bolt" maxlength="200" autocomplete="off" />
           </div>
 
-          <p class="small" style="margin-top:10px;">Tip: In the table region, you can scroll horizontally on small screens.</p>
-        <?php endif; ?>
+          <div class="filterField">
+            <label for="f_set">Set</label>
+            <select id="f_set">
+              <option value="">All sets</option>
+              <?php foreach ($sets as $s): ?>
+                <option value="<?= h((string)$s['set_code']) ?>">
+                  <?= h((string)$s['set_name']) ?> (<?= h(strtoupper((string)$s['set_code'])) ?>)
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="filterField">
+            <label for="f_condition">Condition</label>
+            <select id="f_condition">
+              <option value="">All conditions</option>
+              <option value="NM">NM</option>
+              <option value="LP">LP</option>
+              <option value="MP">MP</option>
+              <option value="HP">HP</option>
+              <option value="DMG">DMG</option>
+            </select>
+          </div>
+
+          <div class="filterField">
+            <label for="f_finish">Finish</label>
+            <select id="f_finish">
+              <option value="">All finishes</option>
+              <option value="nonfoil">Non-foil</option>
+              <option value="foil">Foil</option>
+              <option value="etched">Etched</option>
+            </select>
+          </div>
+
+          <div class="filterField">
+            <label for="f_per_page">Show</label>
+            <select id="f_per_page">
+              <option value="20" selected>20 per page</option>
+              <option value="50">50 per page</option>
+              <option value="100">100 per page</option>
+            </select>
+          </div>
+
+          <div class="rowActions" style="align-self:flex-end;">
+            <button type="button" id="filterBtn">Filter</button>
+            <button type="button" id="clearFilterBtn" class="btnSecondary">Clear</button>
+          </div>
+        </div>
+        <div id="collectionStatus" class="statusline" role="status" aria-live="polite"></div>
       </section>
+
+      <!-- Results table -->
+      <section class="card" style="margin-top:12px;">
+        <div class="tableWrap" role="region" aria-label="Editable collection table" tabindex="0">
+          <table id="collectionTable">
+            <thead>
+              <tr>
+                <th scope="col">Card</th>
+                <th scope="col">Qty</th>
+                <th scope="col">Condition</th>
+                <th scope="col">Language</th>
+                <th scope="col">Finish</th>
+                <th scope="col">Signed</th>
+                <th scope="col">Altered</th>
+                <th scope="col">Acquired</th>
+                <th scope="col">Paid</th>
+                <th scope="col">Notes</th>
+                <th scope="col">Scryfall price</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="collectionBody">
+              <!-- Rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="loadMoreWrap" style="margin-top:12px;"></div>
+        <p class="small" style="margin-top:10px;">Tip: In the table region, you can scroll horizontally on small screens.</p>
+      </section>
+
+      <?php endif; ?>
     </div>
   </main>
 
@@ -314,5 +231,242 @@ foreach ($rows as $r) {
       <small>School project. Not affiliated with Wizards of the Coast.</small>
     </div>
   </footer>
+
+<script>
+  const CSRF = document.body.dataset.csrf;
+
+  const statusEl    = document.getElementById('collectionStatus');
+  const tbody       = document.getElementById('collectionBody');
+  const loadMoreWrap = document.getElementById('loadMoreWrap');
+
+  const fSearch    = document.getElementById('f_search');
+  const fSet       = document.getElementById('f_set');
+  const fCondition = document.getElementById('f_condition');
+  const fFinish    = document.getElementById('f_finish');
+  const fPerPage   = document.getElementById('f_per_page');
+
+  // --- State ---
+  let currentOffset = 0;
+  let currentTotal  = 0;
+  let isLoading     = false;
+
+  function getFilters() {
+    return {
+      search:    fSearch.value.trim(),
+      set:       fSet.value,
+      condition: fCondition.value,
+      finish:    fFinish.value,
+      per_page:  fPerPage.value,
+    };
+  }
+
+  function setStatus(msg, kind = '') {
+    statusEl.textContent = msg;
+    statusEl.className = 'statusline' + (kind ? ' ' + kind : '');
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+    }[c]));
+  }
+
+  function finishPrice(r) {
+    const finish = r.finish ?? 'nonfoil';
+    if (finish === 'foil'  && r.price_usd_foil   != null && r.price_usd_foil   !== '') return parseFloat(r.price_usd_foil);
+    if (finish === 'etched'&& r.price_usd_etched != null && r.price_usd_etched !== '') return parseFloat(r.price_usd_etched);
+    if (r.price_usd != null && r.price_usd !== '') return parseFloat(r.price_usd);
+    return null;
+  }
+
+  function moneyVal(v) {
+    if (v === null || v === '') return '';
+    return '$' + parseFloat(v).toFixed(2);
+  }
+
+  function rowHTML(r) {
+    const itemId = esc(r.collection_id);
+    const p = finishPrice(r);
+    const priceDisplay = p !== null
+      ? `<strong>${esc(moneyVal(String(p)))}</strong><div class="small">(${esc(r.finish)})</div>`
+      : 'No price listed';
+
+    return `
+      <tr>
+        <td>
+          <div class="cellCard">
+            ${r.image_small
+              ? `<img class="thumb" src="${esc(r.image_small)}" alt="Card image: ${esc(r.name)}" loading="lazy">`
+              : `<div class="thumb" role="img" aria-label="No image available"></div>`
+            }
+            <div>
+              <div style="font-weight:900;">${esc(r.name)}</div>
+              <div class="small">${esc(r.type_line ?? '')}</div>
+              <div class="small">
+                ${esc(r.set_name ?? '')}
+                ${r.set_code       ? ' (' + esc(r.set_code.toUpperCase()) + ')' : ''}
+                ${r.collector_number ? ' #' + esc(r.collector_number) : ''}
+              </div>
+              ${r.price_updated_at ? `<div class="small">Price updated: ${esc(r.price_updated_at)}</div>` : ''}
+            </div>
+          </div>
+        </td>
+
+        <td colspan="11" style="padding:0;">
+          <form action="update_collection_item.php" method="post" style="padding:10px;">
+            <input type="hidden" name="csrf" value="${esc(CSRF)}">
+            <input type="hidden" name="collection_id" value="${itemId}">
+
+            <div style="display:grid;grid-template-columns:90px 120px 160px 140px 120px 120px 140px 140px 1.2fr 170px 170px;gap:10px;align-items:start;">
+              <div>
+                <label for="qty-${itemId}" class="srOnly">Quantity</label>
+                <input id="qty-${itemId}" name="qty" type="number" min="0" max="999" value="${esc(r.qty)}">
+              </div>
+              <div>
+                <label for="cond-${itemId}" class="srOnly">Condition</label>
+                <select id="cond-${itemId}" name="card_condition">
+                  ${['NM','LP','MP','HP','DMG'].map(c =>
+                    `<option value="${c}"${r.card_condition === c ? ' selected' : ''}>${c}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div>
+                <label for="lang-${itemId}" class="srOnly">Language</label>
+                <input id="lang-${itemId}" name="card_language" maxlength="32" value="${esc(r.card_language ?? '')}">
+              </div>
+              <div>
+                <label for="finish-${itemId}" class="srOnly">Finish</label>
+                <select id="finish-${itemId}" name="finish">
+                  ${['nonfoil','foil','etched'].map(f =>
+                    `<option value="${f}"${r.finish === f ? ' selected' : ''}>${f.charAt(0).toUpperCase()+f.slice(1)}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div>
+                <label style="display:flex;gap:8px;align-items:center;color:var(--muted);">
+                  <input type="checkbox" name="is_signed" value="1"${parseInt(r.is_signed) === 1 ? ' checked' : ''}>
+                  <span>Signed</span>
+                </label>
+              </div>
+              <div>
+                <label style="display:flex;gap:8px;align-items:center;color:var(--muted);">
+                  <input type="checkbox" name="is_altered" value="1"${parseInt(r.is_altered) === 1 ? ' checked' : ''}>
+                  <span>Altered</span>
+                </label>
+              </div>
+              <div>
+                <label for="acq-${itemId}" class="srOnly">Acquired date</label>
+                <input id="acq-${itemId}" name="acquired_at" type="date" value="${esc(r.acquired_at ?? '')}">
+              </div>
+              <div>
+                <label for="paid-${itemId}" class="srOnly">Purchase price</label>
+                <input id="paid-${itemId}" name="purchase_price" type="number" min="0" step="0.01" inputmode="decimal" value="${esc(r.purchase_price ?? '')}">
+              </div>
+              <div>
+                <label for="notes-${itemId}" class="srOnly">Notes</label>
+                <textarea id="notes-${itemId}" name="notes" maxlength="500">${esc(r.notes ?? '')}</textarea>
+                <div class="small">Max 500 characters.</div>
+              </div>
+              <div class="small" aria-label="Scryfall price for this finish">
+                ${priceDisplay}
+              </div>
+              <div>
+                <div class="btnRow">
+                  <button type="submit" name="action" value="update">Save</button>
+                  <button class="dangerBtn" type="submit" name="action" value="delete"
+                          aria-label="Remove ${esc(r.name)} from collection">Remove</button>
+                </div>
+                <div class="small" style="margin-top:8px;">Updated: ${esc(r.updated_at)}</div>
+              </div>
+            </div>
+          </form>
+        </td>
+      </tr>
+    `;
+  }
+
+  async function loadRows(reset = true) {
+    if (isLoading) return;
+    isLoading = true;
+
+    if (reset) {
+      currentOffset = 0;
+      currentTotal  = 0;
+      tbody.innerHTML = '';
+      loadMoreWrap.innerHTML = '';
+    }
+
+    const filters = getFilters();
+    const params  = new URLSearchParams({
+      search:    filters.search,
+      set:       filters.set,
+      condition: filters.condition,
+      finish:    filters.finish,
+      per_page:  filters.per_page,
+      offset:    currentOffset,
+    });
+
+    setStatus('Loading…');
+
+    try {
+      const res  = await fetch('collection_api.php?' + params.toString());
+      const data = await res.json();
+
+      if (!res.ok) {
+        setStatus('Failed to load collection.', 'bad');
+        isLoading = false;
+        return;
+      }
+
+      currentTotal   = data.total;
+      currentOffset += data.rows.length;
+
+      if (reset && data.rows.length === 0) {
+        setStatus('No cards match your filters.', 'bad');
+        isLoading = false;
+        return;
+      }
+
+      tbody.insertAdjacentHTML('beforeend', data.rows.map(rowHTML).join(''));
+      setStatus(`Showing ${currentOffset} of ${currentTotal} card${currentTotal !== 1 ? 's' : ''}.`, 'ok');
+
+      loadMoreWrap.innerHTML = '';
+      if (data.has_more) {
+        loadMoreWrap.innerHTML = `<button type="button" id="loadMoreBtn">Load more</button>`;
+        document.getElementById('loadMoreBtn').addEventListener('click', () => loadRows(false));
+      }
+
+    } catch (e) {
+      setStatus('Network error loading collection.', 'bad');
+      console.error(e);
+    }
+
+    isLoading = false;
+  }
+
+  // Wire up filter controls
+  document.getElementById('filterBtn').addEventListener('click', () => loadRows(true));
+
+  document.getElementById('clearFilterBtn').addEventListener('click', () => {
+    fSearch.value    = '';
+    fSet.value       = '';
+    fCondition.value = '';
+    fFinish.value    = '';
+    fPerPage.value   = '20';
+    loadRows(true);
+  });
+
+  // Allow Enter in the name search field
+  fSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') loadRows(true);
+  });
+
+  // Re-run immediately when per-page changes
+  fPerPage.addEventListener('change', () => loadRows(true));
+
+  // Load on page open
+  loadRows(true);
+</script>
 </body>
+<?php require_once __DIR__ . "/partials/footer.php"; ?>
 </html>

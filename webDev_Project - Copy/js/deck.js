@@ -11,9 +11,13 @@ console.log('deck.js has been read');
   const csrfToken = window.CSRF_TOKEN;
   const deckId = window.DECK_ID;
 
-  const form = document.getElementById('deckSearchForm');
   const statusEl = document.getElementById('searchStatus');
   const resultsEl = document.getElementById('searchResults');
+
+  const qEl       = document.getElementById('q');
+  const sectionEl = document.getElementById('section');
+  const qtyEl     = document.getElementById('qty');
+  const finishEl  = document.getElementById('finish');
 
   function setStatus(msg, kind=""){
     statusEl.textContent = msg;
@@ -133,18 +137,49 @@ console.log('deck.js has been read');
     `;
   }
 
-  async function runSearch(query, defaults){
-    setStatus("Searching Scryfall…");
-    resultsEl.innerHTML = "";
+  // --- Pagination state ---
+  let allResults  = [];
+  let visibleCount = 0;
+  let nextPageUrl  = null;
+  let totalCards   = 0;
+  let currentDefaults = { section: 'main', qty: '1', finish: 'nonfoil' };
 
-    const url = new URL("https://api.scryfall.com/cards/search");
-    url.searchParams.set("q", query);
-    url.searchParams.set("unique", "prints");
-    url.searchParams.set("order", "name");
-    url.searchParams.set("dir", "auto");
+  async function runSearch(reset = true){
+    const q = qEl.value.trim();
+    if (!q){
+      setStatus("Enter a search query.", "bad");
+      qEl.focus();
+      return;
+    }
+
+    if (reset){
+      setStatus("Searching Scryfall…");
+      resultsEl.innerHTML = "";
+      allResults   = [];
+      visibleCount = 0;
+      nextPageUrl  = null;
+      totalCards   = 0;
+      currentDefaults = {
+        section: sectionEl.value || 'main',
+        qty:     qtyEl.value    || '1',
+        finish:  finishEl.value || 'nonfoil'
+      };
+    }
+
+    let url;
+    if (nextPageUrl && !reset){
+      url = nextPageUrl;
+    } else {
+      const api = new URL("https://api.scryfall.com/cards/search");
+      api.searchParams.set("q", q);
+      api.searchParams.set("unique", "prints");
+      api.searchParams.set("order", "name");
+      api.searchParams.set("dir", "auto");
+      url = api.toString();
+    }
 
     try{
-      const res = await fetch(url.toString(), { headers: { "Accept": "application/json" }});
+      const res = await fetch(url, { headers: { "Accept": "application/json" }});
       const data = await res.json();
 
       if (!res.ok){
@@ -152,32 +187,82 @@ console.log('deck.js has been read');
         return;
       }
 
-      const list = Array.isArray(data?.data) ? data.data.slice(0, 10) : [];
-      if (!list.length){
+      const newCards = Array.isArray(data?.data) ? data.data : [];
+
+      if (reset && !newCards.length){
         setStatus("No results.", "bad");
         return;
       }
 
-      resultsEl.innerHTML = list.map(c => resultHTML(c, defaults)).join("");
-      setStatus(`Found ${data.total_cards ?? list.length}. Showing ${list.length}.`, "ok");
+      allResults.push(...newCards);
+      nextPageUrl = data.has_more ? data.next_page : null;
+      totalCards  = data.total_cards ?? allResults.length;
+
+      renderMoreResults();
+
     } catch {
       setStatus("Network error talking to Scryfall.", "bad");
     }
   }
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const fd = new FormData(form);
-    const q = (fd.get('q') || '').toString().trim();
-    if (!q){
-      setStatus("Enter a search query.", "bad");
-      document.getElementById('q').focus();
+  function renderMoreResults(){
+    const nextChunk = allResults.slice(visibleCount, visibleCount + 20);
+
+    if (nextChunk.length === 0 && !nextPageUrl){
+      setStatus(`Showing all ${visibleCount} result(s).`, "ok");
+      removePagination();
       return;
     }
-    const defaults = {
-      section: (fd.get('section') || 'main').toString(),
-      qty: (fd.get('qty') || '1').toString(),
-      finish: (fd.get('finish') || 'nonfoil').toString()
-    };
-    runSearch(q, defaults);
+
+    if (nextChunk.length > 0){
+      resultsEl.insertAdjacentHTML(
+        'beforeend',
+        nextChunk.map(c => resultHTML(c, currentDefaults)).join("")
+      );
+      visibleCount += nextChunk.length;
+    }
+
+    setStatus(`Found ${totalCards}. Showing ${visibleCount}.`, "ok");
+
+    const stillHiddenLocal = visibleCount < allResults.length;
+    const hasMoreRemote    = nextPageUrl !== null;
+
+    if (stillHiddenLocal || hasMoreRemote){
+      setPaginationBtn();
+    } else {
+      removePagination();
+    }
+  }
+
+  function setPaginationBtn(){
+    // Reuse existing button if already there, otherwise create it
+    let btn = document.getElementById('loadMore');
+    if (!btn){
+      const wrap = document.createElement('div');
+      wrap.id = 'paginationWrap';
+      wrap.style.marginTop = '10px';
+      wrap.innerHTML = `<button type="button" id="loadMore">Load more</button>`;
+      resultsEl.after(wrap);
+      btn = document.getElementById('loadMore');
+    }
+    // Replace listener by cloning
+    const fresh = btn.cloneNode(true);
+    btn.replaceWith(fresh);
+    fresh.addEventListener('click', async () => {
+      if (visibleCount < allResults.length){
+        renderMoreResults();
+      } else if (nextPageUrl){
+        await runSearch(false);
+      }
+    });
+  }
+
+  function removePagination(){
+    document.getElementById('paginationWrap')?.remove();
+  }
+
+  // Wired to button click and Enter key (no form submission)
+  document.getElementById('deckSearchBtn').addEventListener('click', () => runSearch(true));
+  qEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') runSearch(true);
   });

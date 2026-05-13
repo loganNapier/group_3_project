@@ -65,6 +65,24 @@ function loadAllCards(string $path): array {
   return $data;
 }
 
+function findCardNames(array $card): array {
+  $names = [];
+
+  if (!empty($card['name'])) {
+    $names[] = (string)$card['name'];
+  }
+
+  if (!empty($card['card_faces']) && is_array($card['card_faces'])) {
+    foreach ($card['card_faces'] as $face) {
+      if (!empty($face['name'])) {
+        $names[] = (string)$face['name'];
+      }
+    }
+  }
+
+  return array_values(array_unique($names, SORT_STRING));
+}
+
 function findCardInLocalJson(string $query, array $allCards): ?array {
   $needle = mb_strtolower(trim($query));
 
@@ -73,8 +91,10 @@ function findCardInLocalJson(string $query, array $allCards): ?array {
       continue;
     }
 
-    if (mb_strtolower($card['name']) === $needle) {
-      return $card;
+    foreach (findCardNames($card) as $name) {
+      if (mb_strtolower($name) === $needle) {
+        return $card;
+      }
     }
   }
 
@@ -83,8 +103,10 @@ function findCardInLocalJson(string $query, array $allCards): ?array {
       continue;
     }
 
-    if (mb_stripos($card['name'], $query) !== false) {
-      return $card;
+    foreach (findCardNames($card) as $name) {
+      if (mb_stripos($name, $query) !== false) {
+        return $card;
+      }
     }
   }
 
@@ -98,8 +120,16 @@ function parse_decklist_lines(string $raw): array {
   $section = 'main';
 
   foreach ($lines as $line) {
-    $line = trim($line);
-    if ($line === '') continue;
+    $trimmed = trim($line);
+
+    if ($trimmed === '') {
+      if ($section === 'main' && count($out) > 0) {
+        $section = 'side';
+      }
+      continue;
+    }
+
+    $line = $trimmed;
 
     // Ignore comments
     if (str_starts_with($line, '#') || str_starts_with($line, '//')) continue;
@@ -397,6 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <p class="small">
           Paste lines like <code>4 Lightning Bolt</code> or <code>SB: 2 Disenchant</code>.
+          Use a blank line to separate mainboard from sideboard when no explicit header is provided.
           We’ll look up each card on Scryfall.
         </p>
 
@@ -423,7 +454,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($mode === 'preview'): ?>
           <h2 style="margin-top:14px;">Preview</h2>
           <div class="preview" aria-label="Preview results">
+            <?php $lastSection = ''; ?>
             <?php foreach ($preview as $p): ?>
+              <?php if ($p['section'] !== $lastSection): ?>
+                <?php $lastSection = $p['section']; ?>
+                <div class="sectionHeader" style="margin-top:16px; font-weight:700;">
+                  <?= $lastSection === 'side' ? 'Sideboard' : 'Mainboard' ?>
+                </div>
+              <?php endif; ?>
               <div class="item">
                 <?php if (!$p['ok']): ?>
                   <div><strong><?= h((string)$p['raw']) ?></strong></div>
