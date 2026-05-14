@@ -7,7 +7,7 @@
  *
  */
 
-/* Color Variables */
+/* ── Color Variables ────────────────────────────────────────────────────── */
 :root {
   /* Element Colors */
   --bg:     #0b0f14;
@@ -36,7 +36,7 @@ body {
   line-height: 1.5;
 }
 
-/* Nav Styling */
+/* ── Links & Focus ──────────────────────────────────────────────────────── */
 
 a {
   color: var(--text);
@@ -44,7 +44,11 @@ a {
 a:hover {
   color: var(--accent);
 }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: none;
   box-shadow: var(--focus);
   border-color: rgba(124, 196, 255, 0.7);
@@ -70,6 +74,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border: 1px solid var(--border);
   border-radius: 12px;
 }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
 
 header {
   border-bottom: 1px solid var(--border);
@@ -100,7 +106,7 @@ nav ul {
   margin: 0;
   padding: 0;
   display: flex;
-  gap:10px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -117,7 +123,7 @@ nav a:hover {
   border-color: var(--border);
 }
 
-/* Main Styling */
+/* ── Main / Cards ───────────────────────────────────────────────────────── */
 
 main {
   padding: 14px 0 26px;
@@ -148,6 +154,8 @@ p {
   font-size: 0.9rem;
 }
 
+/* ── Status line ────────────────────────────────────────────────────────── */
+
 .statusline {
   margin-top: 10px;
   padding: 10px 12px;
@@ -160,6 +168,14 @@ p {
   color: var(--ok);
   background: rgba(114, 230, 166, 0.06);
 }
+
+.statusline.bad {
+  border-color: rgba(255, 107, 107, 0.35);
+  color: var(--danger);
+  background: rgba(255, 107, 107, 0.06);
+}
+
+/* ── Summary totals ─────────────────────────────────────────────────────── */
 
 .summary {
   margin-top: 12px;
@@ -191,25 +207,27 @@ p {
   margin-top: 4px;
 }
 
+/* ── Table wrapper ──────────────────────────────────────────────────────── */
+
 .tableWrap {
   margin-top: 12px;
-  overflow: auto;
-  border-radius: 14px;
+  overflow-x: auto;
+  border-radius: 10px;
   border: 1px solid var(--border);
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1100px;
-  background: rgba(255,255,255,.01);
+  background: rgba(255, 255, 255, 0.01);
+  /* No min-width — collapsible rows eliminate the need for horizontal scroll */
 }
-  
+
 th, td {
   padding: 10px;
   border-bottom: 1px solid var(--border);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 th {
@@ -217,11 +235,13 @@ th {
   font-weight: 900;
 }
 
+/* ── Form controls ──────────────────────────────────────────────────────── */
+
 input, select, textarea {
-  width:100%;
+  width: 100%;
   padding: 9px 10px;
   border-radius: 12px;
-  border:1px solid var(--border);
+  border: 1px solid var(--border);
   background: #0c121a;
   color: var(--text);
 }
@@ -231,26 +251,89 @@ textarea {
   resize: vertical;
 }
 
+/* ── Card thumbnail & hover pop ─────────────────────────────────────────── */
+
+.thumbWrap {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
 .thumb {
-  width: 56px;
-  height: auto;
-  border-radius: 10px;
+  width: 36px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
   border: 1px solid var(--border);
   background: #0c121a;
   display: block;
 }
 
+.thumb-placeholder {
+  width: 36px;
+  height: 50px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #0c121a;
+  flex-shrink: 0;
+}
+
+.pop {
+  position: fixed;
+  width: 240px;
+  display: none;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  padding: 10px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+}
+
+.pop img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.thumbWrap:hover .pop,
+.thumbWrap:focus-within .pop {
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .pop {
+    display: none !important;
+  }
+}
+
 .cellCard {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
-  min-width:280px;
+  align-items: center;
 }
+
+/* ── Utilities ──────────────────────────────────────────────────────────── */
 
 .small {
   font-size: 0.92rem;
   color: var(--muted);
 }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
 
 .btnRow {
   display: flex;
@@ -269,6 +352,22 @@ button {
   color: #04111c;
 }
 
+button:hover {
+  filter: brightness(1.1);
+}
+
+.btnSecondary {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.btnSecondary:hover {
+  color: var(--text);
+  border-color: var(--muted);
+  filter: none;
+}
+
 .dangerBtn {
   background: transparent;
   color: var(--danger);
@@ -277,20 +376,213 @@ button {
 
 .dangerBtn:hover {
   border-color: rgba(255, 107, 107, 0.75);
+  filter: none;
 }
 
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+/* ── Edit toggle button ─────────────────────────────────────────────────── */
+
+.btnEdit {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btnEdit:hover,
+.btnEdit[aria-expanded="true"] {
+  background: var(--accent);
+  color: #04111c;
+  border-color: var(--accent);
+}
+
+/* ── Collapsible edit row ───────────────────────────────────────────────── */
+
+.editRow td {
   padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
+  background: rgba(255, 255, 255, 0.015);
+  border-top: none;
 }
 
-/* Footer Styling */
+.editRow .editInner {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  align-items: start;
+
+  /* Slide-open animation */
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  padding: 0 16px;
+  transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease, visibility 0s linear 0.3s;
+}
+
+.editRow.is-open .editInner {
+  max-height: 900px;
+  opacity: 1;
+  visibility: visible;
+  padding: 14px 16px 16px;
+  transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease, visibility 0s linear 0s;
+}
+
+/* Notes textarea spans full grid width */
+.editRow .notesField {
+  grid-column: 1 / -1;
+}
+
+/* Save/remove footer bar inside edit row */
+.editRow .editFooter {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+/* Labels inside the edit grid */
+.editRow label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+/* Checkbox labels need flex */
+.editRow .checkLabel {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.editRow .checkLabel input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* ── Card group header row ──────────────────────────────────────────────── */
+
+.cardGroupHeader td {
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 2px solid var(--border);
+  padding: 10px 12px;
+}
+
+/* First group in the table needs no top border */
+tbody tr.cardGroupHeader:first-child td {
+  border-top: none;
+}
+
+.cardGroupName {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.groupQtyBadge {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(124,196,255,0.1);
+  border: 1px solid rgba(124,196,255,0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+/* ── Variant sub-rows ───────────────────────────────────────────────────── */
+
+.variantRow td {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+/* Left indent to visually nest under the card header */
+.variantIndent {
+  width: 20px;
+  padding-left: 0 !important;
+  border-left: 2px solid var(--border);
+}
+
+/* ── Variant tag pills ──────────────────────────────────────────────────── */
+
+.variantTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.variantTag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: rgba(255,255,255,0.04);
+  white-space: nowrap;
+}
+
+.variantTag--finish {
+  color: #ffd97a;
+  border-color: rgba(255,217,122,0.35);
+  background: rgba(255,217,122,0.07);
+}
+
+.variantTag--lang {
+  color: #a78bfa;
+  border-color: rgba(167,139,250,0.35);
+  background: rgba(167,139,250,0.07);
+}
+
+.variantTag--special {
+  color: var(--ok);
+  border-color: rgba(114,230,166,0.35);
+  background: rgba(114,230,166,0.07);
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.filterField label {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.rowActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
 
 footer {
   border-top: 1px solid var(--border);
@@ -298,12 +590,10 @@ footer {
   padding: 14px 0;
 }
 
-/* Media Queries */
+/* ── Media Queries ──────────────────────────────────────────────────────── */
 
 @media (min-width: 900px) {
-  
-    .summary {
-      grid-template-columns: 1fr 1fr 1fr;
-    }
+  .summary {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
 }
-

@@ -2,8 +2,8 @@
 // collection_api.php — JSON endpoint for filtered, paginated collection data
 declare(strict_types=1);
 
-require_once(__DIR__ . "/auth/config.php");
-require_once(__DIR__ . "/auth/auth.php");
+require_once(__DIR__ . "/../auth/config.php");
+require_once(__DIR__ . "/../auth/auth.php");
 
 require_login();
 $uid = (int)$_SESSION['uid'];
@@ -69,7 +69,8 @@ $stmt = $pdo->prepare("
         uc.acquired_at,
         uc.purchase_price,
         uc.updated_at,
-
+        
+        c.scryfall_id,
         c.name,
         c.type_line,
         c.set_code,
@@ -80,6 +81,7 @@ $stmt = $pdo->prepare("
         c.price_usd_foil,
         c.price_usd_etched,
         c.price_updated_at
+        
     FROM user_collection uc
     JOIN cards c ON c.id = uc.card_id
     WHERE $whereSQL

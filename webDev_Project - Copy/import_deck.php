@@ -2,8 +2,8 @@
 // import_deck.php
 declare(strict_types=1);
 
-require_once (__DIR__ . "/../auth/config.php");
-require_once (__DIR__ . "/../auth/auth.php");
+require_once (__DIR__ . "/auth/config.php");
+require_once (__DIR__ . "/auth/auth.php");
 
 require_login();
 $uid = (int)$_SESSION['uid'];
@@ -18,7 +18,7 @@ if (!empty($_SESSION['flash'])) {
 
 function back_with_flash(string $msg, int $deckId = 0): void {
   $_SESSION['flash'] = $msg;
-  $to = $deckId > 0 ? ("import_deck.php?deck_id=" . $deckId) : "../decks.php";
+  $to = $deckId > 0 ? ("import_deck.php?deck_id=" . $deckId) : "decks.php";
   header("Location: " . $to);
   exit;
 }
@@ -371,7 +371,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $pdo->commit();
 
       $_SESSION['flash'] = "Imported {$added} line(s) into the deck.";
-      header("Location: ../deck.php?id=" . $deckId);
+      header("Location: deck.php?id=" . $deckId);
       exit;
     } catch (PDOException $e) {
       if ($pdo->inTransaction()) $pdo->rollBack();
@@ -387,28 +387,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Import decklist — <?= h((string)$deck['name']) ?></title>
-  <link rel="stylesheet" href="../css/import_deck.css" />
+  <link rel="stylesheet" href="/css/import_deck.css" />
+  <link rel="icon" href="/img/mtg_collection_tracker_favicon.ico" type="image/x-icon">
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
 
-  <header>
-    <div class="wrap">
-      <div class="top">
-        <div class="brand">MTG Collection DB</div>
-        <nav aria-label="Primary navigation">
-          <ul>
-            <li><a href="../index.php">Home</a></li>
-            <li><a href="../cards.php">Browse cards</a></li>
-            <li><a href="../collection.php">My collection</a></li>
-            <li><a href="../batch_add.php">Batch add</a></li>
-            <li><a href="../decks.php">Decks</a></li>
-            <li><a href="../logout.php">Logout</a></li>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </header>
+  <?php include '/partials/header.php'; ?>
 
   <main id="main">
     <div class="wrap">
@@ -447,7 +432,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div class="btnRow">
             <button type="submit" name="action" value="preview">Preview</button>
-            <a class="btnSecondary" href="../deck.php?id=<?= (int)$deckId ?>">Cancel</a>
+            <a class="btnSecondary" href="deck.php?id=<?= (int)$deckId ?>">Cancel</a>
           </div>
         </form>
 
@@ -498,7 +483,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="btnRow">
               <button type="submit">Import into deck</button>
-              <a class="btnSecondary" href="../deck.php?id=<?= (int)$deckId ?>">Cancel</a>
+              <a class="btnSecondary" href="deck.php?id=<?= (int)$deckId ?>">Cancel</a>
             </div>
 
             <p class="small" style="margin-top:10px;">

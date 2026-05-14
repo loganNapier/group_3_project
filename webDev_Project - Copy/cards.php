@@ -21,6 +21,7 @@ if (!empty($_SESSION['flash'])) {
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Browse Cards (Scryfall)</title>
   <link rel="stylesheet" href="./css/cards.css" />
+  <link rel="icon" href="/img/mtg_collection_tracker_favicon.ico" type="image/x-icon">
 </head>
 <body>
   <?php require_once __DIR__ . "/partials/header.php"; ?>
@@ -154,7 +155,7 @@ if (!empty($_SESSION['flash'])) {
     let addBlock = `<div class="small">Log in to add this card to your collection.</div>`;
     if (loggedIn) {
       addBlock = `
-        <form class="addForm" action="add_to_collection.php" method="post">
+        <form class="addForm" action="collection_config/add_to_collection.php" method="post">
           <input type="hidden" name="csrf" value="${esc(csrfToken)}">
 
           <input type="hidden" name="scryfall_id" value="${esc(scryfallId)}">

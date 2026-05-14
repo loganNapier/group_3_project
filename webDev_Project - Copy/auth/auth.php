@@ -19,7 +19,7 @@ function csrf_check(?string $token): bool {
 
 function require_login(): void {
   if (empty($_SESSION['uid'])) {
-    header("Location: index.php#login");
+    header("Location: ../index.php#login");
     exit;
   }
 }

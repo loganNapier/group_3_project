@@ -14,7 +14,7 @@ if (!isset($loggedIn)) $loggedIn = false;
 
       
       <div class="left">
-        <img src="mtg_collection_tracker_logo.png" alt="MTG Collection DB Logo">
+        <img src="/img/mtg_collection_tracker_logo.png" alt="MTG Collection DB Logo">
         <div class="brand">MTG Collection DB</div>
       </div>
 

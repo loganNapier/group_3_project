@@ -1,5 +1,5 @@
 <?php
-// index.php (no header/footer partials; in-page styling)
+
 declare(strict_types=1);
 
 require_once (__DIR__ . "/auth/config.php");
@@ -21,6 +21,7 @@ if (!empty($_SESSION['flash'])) {
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MTG Collection DB</title>
   <link rel="stylesheet" href="./css/index.css" />
+  <link rel="icon" href="/img/mtg_collection_tracker_favicon.ico" type="image/x-icon">
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
@@ -44,7 +45,7 @@ if (!empty($_SESSION['flash'])) {
             <a class="btn secondary" href="cards.php">Browse cards</a>
             <a class="btn secondary" href="batch_add.php">Batch add</a>
             <a class="btn secondary" href="decks.php">Decks</a>
-            <a class="btn secondary" href="logout.php">Logout</a>
+            <a class="btn secondary" href="/users/logout.php">Logout</a>
           </div>
         <?php else: ?>
           <div class="statusline.bad statusline" role="status" aria-live="polite">Not signed in. Register or log in below.</div>
@@ -57,7 +58,7 @@ if (!empty($_SESSION['flash'])) {
             <h2 id="registerTitle">Register</h2>
             <p>Passwords are stored securely using <code>password_hash()</code>.</p>
 
-            <form action="register.php" method="post" autocomplete="on">
+            <form action="/users/register.php" method="post" autocomplete="on">
               <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
 
               <div class="row">
@@ -90,7 +91,7 @@ if (!empty($_SESSION['flash'])) {
             <h2 id="loginTitle">Login</h2>
             <p>Use your username (or email) and password.</p>
 
-            <form action="login.php" method="post" autocomplete="on">
+            <form action="/users/login.php" method="post" autocomplete="on">
               <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
 
               <label for="l_id">Username or email</label>

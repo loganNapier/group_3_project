@@ -119,6 +119,7 @@ $deckKnown = $mainKnown + $sideKnown;
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title><?= h((string)$deck['name']) ?> — Deck</title>
   <link rel="stylesheet" href="./css/deck.css" />
+  <link rel="icon" href="/img/mtg_collection_tracker_favicon.ico" type="image/x-icon">
 </head>
 <body data-csrf="<?= h(csrf_token()) ?>" data-deck-id="<?= (int)$deckId ?>">
   <a class="skip" href="#main">Skip to main content</a>
@@ -212,7 +213,7 @@ include 'partials/header.php';
             <!-- FIX: type="button" so pressing Enter or clicking never triggers form submission -->
             <button type="button" id="deckSearchBtn">Search</button>
 
-            <a class="btnSecondary" href="deck_config/import_deck.php?deck_id=<?= (int)$deckId ?>" style="text-decoration:none;padding:10px 12px;border-radius:12px;border:1px solid var(--border);">
+            <a class="btnSecondary" href="import_deck.php?deck_id=<?= (int)$deckId ?>" style="text-decoration:none;padding:10px 12px;border-radius:12px;border:1px solid var(--border);">
               Import decklist
             </a>
           </div>
@@ -256,7 +257,7 @@ include 'partials/header.php';
                         <?php if (!empty($r['price_updated_at'])): ?> • Updated: <?= h((string)$r['price_updated_at']) ?><?php endif; ?>
                       </div>
 
-                      <form action="update_deck_card.php" method="post" style="margin-top:10px;">
+                      <form action="deck_config/update_deck_card.php" method="post" style="margin-top:10px;">
                         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="deck_id" value="<?= (int)$deckId ?>">
                         <input type="hidden" name="deck_card_id" value="<?= (int)$deckCardId ?>">
@@ -334,7 +335,7 @@ include 'partials/header.php';
                         <?php if (!empty($r['price_updated_at'])): ?> • Updated: <?= h((string)$r['price_updated_at']) ?><?php endif; ?>
                       </div>
 
-                      <form action="update_deck_card.php" method="post" style="margin-top:10px;">
+                      <form action="deck_config/update_deck_card.php" method="post" style="margin-top:10px;">
                         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="deck_id" value="<?= (int)$deckId ?>">
                         <input type="hidden" name="deck_card_id" value="<?= (int)$deckCardId ?>">
@@ -382,7 +383,7 @@ include 'partials/header.php';
         </section>
       </section>
 
-      <?php include 'partials/footer.php'; ?>
+      <?php include '/partials/footer.php'; ?>
     </div>
   </main>
 

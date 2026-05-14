@@ -68,6 +68,7 @@ $decks = $stmt->fetchAll();
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>My Decks</title>
   <link rel="stylesheet" href="./css/decks.css" />
+  <link rel="icon" href="/img/mtg_collection_tracker_favicon.ico" type="image/x-icon">
 </head>
 <body>
 <?php

@@ -1,5 +1,5 @@
 <?php
-// config.php (debug-friendly)
+// config.php 
 declare(strict_types=1);
 
 $DB_HOST = "127.0.0.1";   // try 127.0.0.1 instead of localhost
